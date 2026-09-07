@@ -2,9 +2,9 @@
 
 - **Slug:** loopsmith-training-portal
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending — owner acceptance
+- **Accepted-by:** Tim WU
 - **Date:** 2026-09-07
-- **Status:** draft
+- **Status:** accepted
 
 ## Problem
 
