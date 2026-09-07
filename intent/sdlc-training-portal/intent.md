@@ -2,9 +2,9 @@
 
 - **Slug:** sdlc-training-portal
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending — re-acceptance after Amendment 1
+- **Accepted-by:** Tim WU
 - **Date:** 2026-09-07
-- **Status:** draft
+- **Status:** accepted
 
 ## Amendment 1 — the name is decided, and it is not a new one (requires re-acceptance)
 
