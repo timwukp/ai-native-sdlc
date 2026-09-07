@@ -2,9 +2,9 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending — engineer acceptance
-- **Accepted-for:** pending — set at acceptance
-- **Status:** draft
+- **Accepted-by:** Tim WU
+- **Accepted-for:** 55b979fdb5a34b6738fdede2a23b04e868d0d5f3
+- **Status:** accepted
 
 This repository has no remote yet and no merge base, because the owner creates the repository
 (spec Q2). `Accepted-for` therefore binds to the commit that is `HEAD` when the plan is
