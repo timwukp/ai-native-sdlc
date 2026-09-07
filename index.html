@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Native SDLC — a training portal</title>
+<meta name="description" content="Training for the AI-native software development lifecycle: six stages, one committed artifact per stage, and stage gates that are enforceable instead of aspirational.">
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#151b23; --bg3:#1c2430; --line:#303b4a;
+    --fg:#e9eff5; --dim:#b3c2d2; --dim2:#93a4b7;
+    --acc:#7fb3ff; --acc2:#8ee8ca; --warn:#ffc078; --bad:#ff9b9b; --good:#8ce99a;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--acc)}
+  a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--acc2);outline-offset:2px;border-radius:3px}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 20px}
+  code,kbd{font-family:var(--mono);font-size:.9em;background:var(--bg3);padding:.12em .38em;border-radius:4px}
+  pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto}
+  pre code{background:none;padding:0;font-size:.86rem;line-height:1.6}
+  h1,h2,h3,h4{line-height:1.25;letter-spacing:-.01em}
+  h2{font-size:1.6rem;margin:0 0 .3em}
+  h3{font-size:1.14rem;margin:1.6em 0 .4em}
+  h4{font-size:1rem;margin:1.3em 0 .3em}
+  .lede{color:var(--dim);font-size:1.05rem}
+  .skip{position:absolute;left:-9999px}
+  .skip:focus{left:20px;top:10px;z-index:9;background:var(--acc);color:#06121f;padding:8px 14px;border-radius:6px}
+
+  header.site{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#111823,#0d1117)}
+  .brand{display:flex;align-items:center;gap:12px;padding:18px 0}
+  .brand b{font-size:1.1rem;letter-spacing:-.02em}
+  .brand span{color:var(--dim2);font-size:.85rem}
+  nav.top{display:flex;gap:18px;flex-wrap:wrap;padding-bottom:16px;font-size:.9rem}
+  nav.top a{color:var(--dim);text-decoration:none}
+  nav.top a:hover{color:var(--fg);text-decoration:underline}
+  .hero{padding:48px 0 54px}
+  .hero h1{font-size:clamp(1.9rem,4.4vw,3rem);margin:0 0 .5em;max-width:26ch}
+  .hero p{max-width:66ch;color:var(--dim);font-size:1.08rem}
+  .disambig{margin:24px 0 0;border-left:3px solid var(--acc2);background:#12211d;padding:12px 15px;border-radius:0 8px 8px 0;font-size:.94rem;color:#cfe9df;max-width:70ch}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin:24px 0 0}
+  .pill{font-size:.78rem;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--dim)}
+  .pill.ok{border-color:#3c7a56;color:var(--good)}
+  .pill.no{border-color:#7a4a4a;color:var(--bad)}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+  .btn{display:inline-block;padding:11px 18px;border-radius:8px;font-weight:600;font-size:.94rem;text-decoration:none;border:1px solid var(--line);background:var(--bg2);color:var(--fg)}
+  .btn.p{background:var(--acc);border-color:var(--acc);color:#06121f}
+
+  section{padding:54px 0;border-top:1px solid var(--line)}
+  .grid{display:grid;gap:16px}
+  @media(min-width:760px){.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h3,.card h4{margin:.1em 0 .35em;font-size:1rem}
+  .card p{margin:0;color:var(--dim);font-size:.93rem}
+
+  .loop{display:grid;gap:10px;margin:22px 0 0}
+  @media(min-width:700px){.loop{grid-template-columns:repeat(3,1fr)}}
+  .node{background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:10px;padding:12px 14px}
+  .node b{display:block;font-size:.82rem;color:var(--dim2);text-transform:uppercase;letter-spacing:.07em}
+  .node code{background:none;padding:0;color:var(--acc2);font-size:.92rem}
+  .node.last{border-left-color:var(--acc2)}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:22px 0 0}
+  .tabs button{background:var(--bg2);border:1px solid var(--line);color:var(--dim);padding:9px 14px;border-radius:8px;font:600 .88rem var(--sans);cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#06121f}
+  .panel{margin-top:18px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .panel[hidden]{display:none}
+  .panel h3{margin-top:0}
+  .vs{display:grid;gap:12px;margin:14px 0}
+  @media(min-width:700px){.vs{grid-template-columns:1fr 1fr}}
+  .vs>div{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--bg3)}
+  .vs b{display:block;font-size:.76rem;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+  .vs .t b{color:var(--dim2)} .vs .a b{color:var(--acc2)}
+  .vs p{margin:0;font-size:.92rem;color:var(--dim)}
+  .kv{margin:14px 0 0;padding:0;list-style:none}
+  .kv li{padding:8px 0;border-top:1px solid var(--line);font-size:.93rem;color:var(--dim)}
+  .kv li:first-child{border-top:0}
+  .kv strong{color:var(--fg);font-weight:600}
+  .art{display:inline-block;margin:12px 0 0;font-family:var(--mono);font-size:.88rem;color:var(--acc2);background:var(--bg3);border:1px solid var(--line);padding:6px 10px;border-radius:6px}
+
+  table{width:100%;border-collapse:collapse;margin:18px 0 0;font-size:.92rem}
+  caption{text-align:left;color:var(--dim2);font-size:.85rem;padding-bottom:8px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim2);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
+  td strong{color:var(--fg)}
+
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:20px 0 0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 20px 44px;border-left:1px solid var(--line);margin-left:12px}
+  ol.steps>li:last-child{border-left-color:transparent;padding-bottom:0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:-13px;top:0;width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--line);color:var(--acc);font:700 .8rem var(--mono);display:grid;place-items:center}
+  ol.steps h4{margin:.1em 0 .3em}
+  ol.steps p{margin:0 0 8px;color:var(--dim);font-size:.93rem}
+
+  details{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px 15px;margin:10px 0}
+  summary{cursor:pointer;font-weight:600;font-size:.95rem}
+  details p{color:var(--dim);font-size:.93rem;margin:.6em 0 0}
+
+  .q{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0}
+  .q p.stem{margin:0 0 12px;font-weight:600}
+  .opts{display:grid;gap:8px}
+  .opts button{text-align:left;background:var(--bg3);border:1px solid var(--line);color:var(--fg);padding:11px 13px;border-radius:8px;font:.93rem var(--sans);cursor:pointer}
+  .opts button:hover{border-color:var(--acc)}
+  .opts button.right{border-color:var(--good);background:#16281c}
+  .opts button.wrong{border-color:var(--bad);background:#2b1818}
+  .fb{margin:12px 0 0;font-size:.92rem;color:var(--dim)}
+  .score{font-family:var(--mono);color:var(--dim2);font-size:.88rem}
+
+  .note{border-left:3px solid var(--warn);background:#1e1a13;padding:12px 15px;border-radius:0 8px 8px 0;margin:16px 0;font-size:.93rem;color:#efe0c6}
+  .note b{color:var(--warn)}
+  footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--dim2);font-size:.88rem}
+  footer a{color:var(--dim)}
+  footer p{max-width:76ch}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+        <circle cx="20" cy="20" r="14" fill="none" stroke="#7fb3ff" stroke-width="2.5" stroke-dasharray="60 12" stroke-linecap="round"/>
+        <circle cx="20" cy="6" r="3.6" fill="#8ee8ca"/>
+        <rect x="16.5" y="16.5" width="7" height="7" rx="1.6" fill="#7fb3ff"/>
+      </svg>
+      <div>
+        <b>AI-Native SDLC</b><br>
+        <span>A training portal</span>
+      </div>
+    </div>
+    <nav class="top" aria-label="Sections">
+      <a href="#why">Why</a>
+      <a href="#loop">The loop</a>
+      <a href="#stages">Six stages</a>
+      <a href="#enforce">Enforcement</a>
+      <a href="#lab">Lab</a>
+      <a href="#limits">Honest limits</a>
+      <a href="#check">Self-check</a>
+      <a href="#sources">Sources</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<div class="wrap hero">
+  <h1>The process around the code is the bottleneck now.</h1>
+  <p class="lede">Agents write the diff in hours. The plan, the review and the release still run
+  at human speed — so that is where the queue forms. This is a course on rebuilding the lifecycle
+  as a <strong>loop of committed artifacts</strong>, and on making the stage order
+  <strong>enforceable</strong> rather than aspirational.</p>
+
+  <p class="disambig">This is a training site <em>about</em> the <code>ai-native-sdlc</code> skill.
+  It is <strong>not the skill's source repository</strong> — the skill, its gate scripts,
+  templates and reference docs live in
+  <a href="https://github.com/timwukp/agent-skills-best-practice/tree/main/skills/skills/ai-native-sdlc">agent-skills-best-practice</a>.
+  This portal is independent and <strong>not affiliated</strong> with or endorsed by Anthropic.</p>
+
+  <div class="pills">
+    <span class="pill">6 stages</span>
+    <span class="pill">one artifact per stage</span>
+    <span class="pill">hook + CI gate</span>
+    <span class="pill ok">Usable now: individual &amp; small team</span>
+    <span class="pill no">Not a compliance control</span>
+  </div>
+  <div class="cta">
+    <a class="btn p" href="#loop">Start the course</a>
+    <a class="btn" href="#lab">Jump to the lab</a>
+  </div>
+</div>
+
+<section id="why">
+  <div class="wrap">
+    <h2>Why the lifecycle has to change</h2>
+    <p class="lede">The traditional lifecycle was optimised for an era when writing code was the
+    slowest, most expensive stage. Its controls also assume a human performs every step.</p>
+    <div class="grid g3" style="margin-top:22px">
+      <div class="card">
+        <h3>The bottleneck moves outward</h3>
+        <p>Build collapses to hours; plan, review and deploy keep their length. The constraint is
+        now the human-speed stages on either side of build.</p>
+      </div>
+      <div class="card">
+        <h3>Controls stop matching reality</h3>
+        <p>Reading every line by hand made sense when a person wrote every line. It cannot keep
+        pace once agents write most of the diff.</p>
+      </div>
+      <div class="card">
+        <h3>Governance cost rises</h3>
+        <p>Exceptions still route through committees that meet weekly. A security team sized for
+        human output either builds a queue or ships under-reviewed code.</p>
+      </div>
+    </div>
+    <div class="note">
+      <b>The principle that survives.</b> Humans stay accountable for every decision that needs
+      judgement. What changes is <em>where</em> the attention sits: at the gates, reviewing what
+      the agent flagged, instead of at the start of every stage.
+    </div>
+  </div>
+</section>
+
+<section id="loop">
+  <div class="wrap">
+    <h2>The loop, and the artifact that carries it</h2>
+    <p class="lede">Each stage <strong>ends by committing one machine-readable artifact</strong>,
+    and the next stage <strong>begins by reading it</strong>. The chain of commits becomes the
+    audit trail: who asked for what, what the agent produced, and who approved it.</p>
+
+    <div class="loop">
+      <div class="node"><b>Stage 1 · Plan</b><code>intent.md</code></div>
+      <div class="node"><b>Stage 2 · Design</b><code>spec.md</code></div>
+      <div class="node"><b>Stage 3 · Build</b><code>plan.md → diff + tests</code></div>
+      <div class="node"><b>Stage 4 · Test</b><code>verification target + evals/</code></div>
+      <div class="node"><b>Stage 5 · Deploy</b><code>PR + REVIEW.md findings</code></div>
+      <div class="node last"><b>Stage 6 · Maintain</b><code>bands.yaml breach → new intent.md</code></div>
+    </div>
+    <p class="lede" style="margin-top:14px;font-size:1rem">Stage 6 writes a fresh
+    <code>intent.md</code>, which re-enters Stage 1. That is what makes it a loop rather than a
+    line — and why "closing the loop" is a deliverable rather than a metaphor.</p>
+
+    <h3>Why markdown early, code later</h3>
+    <p class="lede" style="font-size:1rem">In the early stages a product owner and an agent must
+    both read and act on the same file, so markdown wins. From Build onward the artifact is the
+    code and its records.</p>
+  </div>
+</section>
+
+<section id="stages">
+  <div class="wrap">
+    <h2>The six stages</h2>
+    <p class="lede">Each stage shows the shift from traditional practice, the artifact it commits,
+    the gate and who holds it, and how it is measured.</p>
+
+    <div class="tabs" role="tablist" aria-label="Lifecycle stages">
+      <button type="button" role="tab" id="t1" aria-controls="p1" aria-selected="true">1 · Plan</button>
+      <button type="button" role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1">2 · Design</button>
+      <button type="button" role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1">3 · Build</button>
+      <button type="button" role="tab" id="t4" aria-controls="p4" aria-selected="false" tabindex="-1">4 · Test</button>
+      <button type="button" role="tab" id="t5" aria-controls="p5" aria-selected="false" tabindex="-1">5 · Deploy</button>
+      <button type="button" role="tab" id="t6" aria-controls="p6" aria-selected="false" tabindex="-1">6 · Maintain</button>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p1" aria-labelledby="t1" tabindex="0">
+      <h3>Stage 1 — Plan</h3>
+      <p class="lede" style="font-size:1rem">Ideas stop waiting for someone to write them up.
+      Intent is captured once, in the originator's own words, as a version-controlled artifact the
+      next stage can act on.</p>
+      <div class="vs">
+        <div class="t"><b>Traditional</b><p>Backlog entries, user stories, story points and
+        refinement meetings. Ownership transfers at each handoff, so what reaches engineering is
+        several steps removed from what the originator meant.</p></div>
+        <div class="a"><b>AI-native</b><p>The originator brainstorms with an agent and writes the
+        result as <code>intent.md</code>: what is wanted, why, under which constraints. Repeat
+        processes are encoded as skills.</p></div>
+      </div>
+      <span class="art">commits → intent/&lt;slug&gt;/intent.md</span>
+      <ul class="kv">
+        <li><strong>Contents.</strong> Problem, desired outcome, affected users and systems,
+          constraints, success criteria, open questions.</li>
+        <li><strong>Gate.</strong> The product owner sets <code>Status: accepted</code>. The
+          accepting commit is the record — and it must not be the author's own.</li>
+        <li><strong>Evidence.</strong> The committed file, with author, timestamp and full
+          revision history.</li>
+        <li><strong>Measure.</strong> Leading: hours from first conversation to a committed
+          intent. Lagging: the share of intents accepted into Design rather than closed.</li>
+      </ul>
+      <div class="note"><b>Trap.</b> Open questions must be closed or explicitly deferred before
+      Design. An unanswered question does not disappear; it resurfaces as rework after build
+      starts.</div>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p2" aria-labelledby="t2" tabindex="0">
+      <h3>Stage 2 — Design</h3>
+      <p class="lede" style="font-size:1rem">Requirements and design collapse into one session.
+      Policy is applied while the spec is written, not discovered in a review weeks later.</p>
+      <div class="vs">
+        <div class="t"><b>Traditional</b><p>Analysts formalise the idea into requirements;
+        designers parse those back into a design. The separation buys accountability and costs
+        weeks, losing fidelity at each hop.</p></div>
+        <div class="a"><b>AI-native</b><p>One session takes the accepted <code>intent.md</code> and
+        produces requirements plus design, constrained by the organisation's skills, with concerns
+        flagged.</p></div>
+      </div>
+      <span class="art">commits → intent/&lt;slug&gt;/spec.md</span>
+      <ul class="kv">
+        <li><strong>Flagged concerns first.</strong> These are the points an analyst would have
+          escalated. Each names a policy owner and is resolved with them before engineering sees
+          the spec.</li>
+        <li><strong>Gate.</strong> The owner sets <code>Status: signed-off</code>, consulting a
+          technical lead for anything classed as higher risk.</li>
+        <li><strong>Evidence.</strong> The spec, the prompt that produced it, and the skill
+          versions in force — all in version control.</li>
+        <li><strong>Measure.</strong> Leading: elapsed time between the intent and spec commits.
+          Lagging: spec commits dated after the first plan commit, which is requirements
+          rework.</li>
+      </ul>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p3" aria-labelledby="t3" tabindex="0">
+      <h3>Stage 3 — Build</h3>
+      <p class="lede" style="font-size:1rem">Nothing is implemented without an accepted plan.
+      Institutional knowledge becomes files the agent reads, and guardrails run as code rather
+      than as habits.</p>
+      <div class="vs">
+        <div class="t"><b>Traditional</b><p>How the change will be made stays in the engineer's
+        head. The first thing a reviewer sees is the finished diff, and by then rework is
+        slow.</p></div>
+        <div class="a"><b>AI-native</b><p>The agent reads the codebase and changes
+        <em>nothing</em> while planning. The engineer corrects the plan before code exists, and the
+        approved version is committed.</p></div>
+      </div>
+      <span class="art">commits → intent/&lt;slug&gt;/plan.md, then the diff</span>
+      <ul class="kv">
+        <li><strong>The plan names</strong> the files that change, the order of work, the risks and
+          the tests that prove it — detailed enough that an engineer who never saw the conversation
+          could implement it.</li>
+        <li><strong>Record rejected approaches</strong> and why, so a later session does not
+          re-walk them.</li>
+        <li><strong>Gate.</strong> <code>Status: accepted</code> <em>before any file is
+          edited</em>. If implementation departs from the plan, update the plan in the same
+          commit.</li>
+        <li><strong>Binding.</strong> An acceptance is recorded <em>for a base commit</em>. Bind it
+          to the <strong>merge base</strong> — the fork point the approval was granted at — not the
+          branch tip, which moves after the branch is cut.</li>
+        <li><strong>Coverage.</strong> Every source file the change touches must be named in the
+          plan; the gate refuses a diff that touches a file the active plan does not mention.</li>
+      </ul>
+      <div class="note"><b>Why coverage matters.</b> Without it a single historical acceptance
+      launders every later change to any file that plan happened to name.</div>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p4" aria-labelledby="t4" tabindex="0">
+      <h3>Stage 4 — Test</h3>
+      <p class="lede" style="font-size:1rem">Every session checks its own work before a human sees
+      it, and the configuration that steers the agent gets regression-tested like the code it
+      writes.</p>
+      <div class="vs">
+        <div class="t"><b>Traditional</b><p>The signal that code works arrives late: CI in
+        minutes, a tester in days, production in weeks. With an agent producing the code, a late
+        signal makes a person the bottleneck.</p></div>
+        <div class="a"><b>AI-native</b><p>The session is given a way to verify itself and iterates
+        until the check passes, so what reaches the engineer has already passed it.</p></div>
+      </div>
+      <span class="art">a verification target (one command) + evals/</span>
+      <ul class="kv">
+        <li><strong>Write the target first, watch it fail.</strong> A test that has only ever been
+          seen green is not evidence.</li>
+        <li><strong>For a bug fix</strong>, commit the failing test first, then make it pass
+          <em>without editing the test</em>. A test the agent could not rewrite is proof the bug is
+          gone.</li>
+        <li><strong>Protect the loop.</strong> An agent fixing code must not be able to weaken the
+          check on that code — block edits to test files during a fix, or reject such a diff in
+          review.</li>
+        <li><strong>Evals are the stage gate that keeps up.</strong> Run them on any change to the
+          agent's own configuration — instructions, skills, hooks — and on a schedule. Every
+          production incident becomes a permanent eval case.</li>
+        <li><strong>Prove a test can fail.</strong> Mutate the implementation and confirm the suite
+          goes red. A surviving mutation is an untested behaviour, not a pass.</li>
+      </ul>
+      <div class="note"><b>The weak-eval hole.</b> A gate can verify that an eval <em>exists and
+      passes</em>. It cannot verify the eval is any good. An eval asserting that an element's id
+      appears in the HTML passes while that element sits behind <code>display:none</code> —
+      invisible and unreachable. A green gate means "the declared checks passed", never "the change
+      is correct".</div>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p5" aria-labelledby="t5" tabindex="0">
+      <h3>Stage 5 — Deploy</h3>
+      <p class="lede" style="font-size:1rem">Review runs in both directions, and governance is
+      enforced as the agent acts. The agent may do everything up to the production gate and nothing
+      past it.</p>
+      <div class="vs">
+        <div class="t"><b>Traditional</b><p>Review capacity was planned around human output.
+        Quality varies with the reviewer's load, the author chases, the backlog grows.</p></div>
+        <div class="a"><b>AI-native</b><p>Every pull request gets an identical set of
+        severity-ranked passes. Human attention moves up a level: does the change do what the plan
+        intended, and is the risk acceptable?</p></div>
+      </div>
+      <span class="art">PR + REVIEW.md findings → gated release</span>
+      <ul class="kv">
+        <li><strong><code>REVIEW.md</code> defines the passes</strong> — bugs, security, then
+          compliance against <code>spec.md</code> and <code>plan.md</code> — plus what counts as
+          Important versus a Nit, a nit cap, and what to skip.</li>
+        <li><strong>Separation of duties.</strong> The agent that wrote the code has no route to
+          approve it. A human code owner still merges.</li>
+        <li><strong>Close the intent on merge.</strong> Set <code>Status: shipped</code>. This is
+          not bookkeeping: a still-<code>accepted</code> chain keeps authorising later unrelated
+          edits to every file its plan named. Never reset a shipped chain to keep working under it
+          — start a new intent.</li>
+        <li><strong>Hooks as approval gates.</strong> A hook can allow, block, or <em>ask</em>. A
+          block should explain itself and name the route to approval.</li>
+        <li><strong>Measure.</strong> Leading: time to first review, and comments resolved without
+          a human touching the branch. Lagging: defects caught before merge versus those escaping
+          to production.</li>
+      </ul>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p6" aria-labelledby="t6" tabindex="0">
+      <h3>Stage 6 — Maintain</h3>
+      <p class="lede" style="font-size:1rem">The loop closes. A trigger invokes the agent with no
+      person in the invocation path, and what it finds re-enters the pipeline as
+      <code>intent.md</code>.</p>
+      <div class="vs">
+        <div class="t"><b>Traditional</b><p>Maintenance is reactive. An alert fires at 3am and can
+        be missed; a ticket sits in the backlog; post-mortem actions may never reach the
+        codebase.</p></div>
+        <div class="a"><b>AI-native</b><p>A control-band breach, ticket, channel message or
+        schedule invokes the agent. It diagnoses, acts only through gated routes, and writes what
+        it finds as a new <code>intent.md</code>.</p></div>
+      </div>
+      <span class="art">bands.yaml breach → a new intent.md</span>
+      <ul class="kv">
+        <li><strong>Detection stays deterministic.</strong> A version-controlled, unit-tested
+          script watches the metric. <em>The model is never in the detection path.</em></li>
+        <li><strong>Tier by deviation.</strong> 1σ log · 2σ diagnose read-only · 3σ act, but only
+          by opening a pull request into the review gate or running a pre-approved runbook.</li>
+        <li><strong>Rollback is the most rehearsed path</strong> in the pipeline, exercised
+          regularly in staging, because the 3σ tier may call it.</li>
+        <li><strong>Dismissals tune the bands</strong> and are recorded, so noise falls over
+          time.</li>
+        <li><strong>Measure.</strong> Leading: time from band breach to an intent in the triage
+          queue. Lagging: the share of findings that become merged fixes, and repeat incidents of
+          the same class.</li>
+      </ul>
+      <pre><code># bands.yaml — monitoring the CI test failure rate
+metric: ci_test_failure_rate
+baseline: rolling_30d
+rules: western_electric
+tiers:
+  1sigma: { action: log }
+  2sigma: { action: diagnose, tools: "Read,Grep,Bash(gh run view *)" }
+  3sigma: { action: propose, routes: [pull_request, runbook:rollback-deploy] }</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="enforce">
+  <div class="wrap">
+    <h2>Advisory, deterministic, or actually binding</h2>
+    <p class="lede">This is the distinction most adoptions get wrong. Writing the process down does
+    not enforce it.</p>
+    <table>
+      <caption>Enforcement strength by mechanism</caption>
+      <thead><tr><th scope="col">Strength</th><th scope="col">Mechanism</th><th scope="col">Bypassable</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Advisory</th><td>A skill. Makes the agent <em>likely</em> to follow the
+          process.</td><td>Yes — by not consulting it</td></tr>
+        <tr><th scope="row">Deterministic</th><td>A <code>PreToolUse</code> hook at write time. It
+          <strong>fails open</strong>.</td><td>Yes — by removing it</td></tr>
+        <tr><th scope="row">Merge gate</th><td>A CI gate on the pull request. It <strong>fails
+          closed</strong>.</td><td>Only by an admin unsetting the required check</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <b>A green-or-red check is not a gate.</b> Until the check is marked <strong>required</strong>
+      in branch protection, a red check can still be merged. And a required check whose workflow is
+      path-filtered never reports on a pull request that touches other files — which blocks that
+      pull request forever, waiting on a check that can never arrive.
+    </div>
+    <h3>Three failure modes worth memorising</h3>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card"><h4>A skipped check reads as passing</h4><p>GitHub treats a
+        <strong>skipped</strong> required check as green. A summary job must therefore run
+        <code>if: always()</code> and inspect its dependencies' results explicitly, rather than
+        being skipped along with them.</p></div>
+      <div class="card"><h4>An unbound approval outlives its change</h4><p>If the acceptance records
+        no base commit, it keeps authorising later edits. Record the base, and compare it with the
+        pull request's real <strong>merge base</strong>.</p></div>
+      <div class="card"><h4>Admins bypass repository protection</h4><p>Only an organisation- or
+        enterprise-level ruleset whose bypass list excludes repository admins is genuinely
+        unbypassable. In a personal repository this gap cannot be closed at all.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="lab">
+  <div class="wrap">
+    <h2>Hands-on lab: run one change end to end</h2>
+    <p class="lede">The fastest way to learn the loop is to push one small change through it and
+    let the gate refuse you a few times.</p>
+
+    <ol class="steps">
+      <li>
+        <h4>Install the two enforcement layers</h4>
+        <p>Vendor the gate scripts, the write-time hook and the merge gate into the repository.</p>
+        <pre><code>SKILL=&lt;the skill's directory&gt;
+mkdir -p .kiro/hooks .sdlc/scripts .github/workflows
+cp "$SKILL"/templates/kiro-hooks/sdlc-gate.json        .kiro/hooks/
+cp "$SKILL"/scripts/sdlc_pretooluse_hook.py            .sdlc/scripts/
+cp "$SKILL"/scripts/sdlc_gate.py                       .sdlc/scripts/
+cp "$SKILL"/scripts/sdlc_ci_gate.py                    .sdlc/scripts/
+cp "$SKILL"/templates/github-workflows/sdlc-gate.yml   .github/workflows/
+echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
+      </li>
+      <li>
+        <h4>Do the one step only a human can</h4>
+        <p>Mark the gate a <strong>required</strong> status check in branch protection. Until you
+        do, everything above is advisory.</p>
+      </li>
+      <li>
+        <h4>Write the intent, then stop</h4>
+        <p>Create <code>intent/&lt;slug&gt;/intent.md</code> from the template. Do not write a spec
+        and do not touch code. Ask the owner to accept it — someone other than the author.</p>
+      </li>
+      <li>
+        <h4>Watch the gate refuse you</h4>
+        <p>Run it against the draft and read the reason on stderr. Exit <code>2</code> means
+        closed. This is the lesson, not an error.</p>
+        <pre><code>python3 .sdlc/scripts/sdlc_gate.py intent/&lt;slug&gt; design
+# exit 0 = gate open, exit 2 = gate closed (reason on stderr)</code></pre>
+      </li>
+      <li>
+        <h4>Plan before you edit anything</h4>
+        <p>Produce <code>plan.md</code> naming files, order, risks and proving tests. Bind the
+        acceptance to the merge base, not the branch tip:</p>
+        <pre><code>git merge-base origin/main HEAD   # the fork point the approval covers</code></pre>
+      </li>
+      <li>
+        <h4>Red first, then green</h4>
+        <p>Write the verification target, run it, and confirm it fails <em>for the reason you
+        expect</em> — a traceback is not a red test. Commit that red target separately, then
+        implement until it passes.</p>
+      </li>
+      <li>
+        <h4>Open the pull request and let review run both ways</h4>
+        <p>Findings inform; a human code owner still merges. Treat a required check as green only
+        when its conclusion is literally <code>success</code> — never <code>skipped</code>.</p>
+      </li>
+      <li>
+        <h4>Close the chain</h4>
+        <p>After merge, set <code>Status: shipped</code> on all three artifacts and point
+        <code>.sdlc/active</code> at the next slug. Skipping this leaves a spent approval reading
+        as live.</p>
+      </li>
+    </ol>
+
+    <h3>Exercises that make each trap observable</h3>
+    <details><summary>Try to edit source before the plan is accepted</summary>
+      <p>The write-time hook should stop you. Now remove the hook and try again — it succeeds. That
+      is the difference between "deterministic" and "binding", felt rather than read.</p></details>
+    <details><summary>Accept a plan bound to the branch tip instead of the merge base</summary>
+      <p>Push a second commit, then open the pull request. The gate refuses with a binding
+      mismatch. This is why the guidance says merge base: the base moves after the branch is
+      cut.</p></details>
+    <details><summary>Leave a merged chain as <code>accepted</code> and start unrelated work</summary>
+      <p>Edit any file that plan named. The gate passes — with no new approval. Now mark the chain
+      <code>shipped</code> and repeat: it refuses, and tells you to open a new intent.</p></details>
+    <details><summary>Make a required check report <code>skipped</code></summary>
+      <p>Add a paths filter to the workflow behind a required check, then open a pull request that
+      touches other files. Watch branch protection accept the skip as green — or, with a summary
+      job that lacks <code>if: always()</code>, watch the pull request wait forever.</p></details>
+    <details><summary>Write an eval that passes while the feature is broken</summary>
+      <p>Assert that an element's id appears in the HTML, then hide the element with
+      <code>display:none</code>. Green gate, broken feature. No gate catches this — only a human
+      reading the requirement does.</p></details>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="wrap">
+    <h2>Honest limits — read this before citing any of it</h2>
+    <p class="lede">A governance tool that overstates its own governance teaches the wrong lesson.
+    Scored against an enterprise control rubric, the reference implementation stands at
+    <strong>36/80 (45%)</strong>, and roughly <strong>48%</strong> is the ceiling a standalone
+    repository can reach on its own.</p>
+
+    <table>
+      <caption>Adoption positions, and what each requires</caption>
+      <thead><tr><th scope="col">Adoption position</th><th scope="col">Status</th><th scope="col">What it requires</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Individual or small team, production use</th>
+          <td><strong>Usable now</strong></td><td>Nothing beyond the repository.</td></tr>
+        <tr><th scope="row">Controlled enterprise pilot</th>
+          <td><strong>Conditional</strong></td><td>The enterprise supplies central policy, external
+          evidence custody and identity governance for the pilot scope.</td></tr>
+        <tr><th scope="row">Enterprise-wide mandatory control</th>
+          <td><strong>Not achieved</strong></td><td>Fleet-wide policy, ownership, telemetry and
+          drift visibility.</td></tr>
+        <tr><th scope="row">Regulated or auditable compliance control</th>
+          <td><strong>Not achieved</strong></td><td>All of the above, plus retention, longitudinal
+          evidence and independent assurance.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Three controls no repository can grant itself</h3>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card"><h4>An organisation policy plane</h4><p>Policy authority must sit above the
+        repository wall. Anyone with write access can delete the local control, so the tier that
+        mandates it cannot live inside the thing being governed.</p></div>
+      <div class="card"><h4>A tamper-evident audit sink</h4><p>The trail is git history in the
+        repository being governed, and the governed party can rewrite it. Self-audit is not
+        audit.</p></div>
+      <div class="card"><h4>Independent assurance</h4><p>Every test in the reference implementation
+        was written by its implementer. <strong>Self-authored tests are not independence</strong>,
+        and no badge substitutes for a report.</p></div>
+    </div>
+
+    <div class="note">
+      <b>What documentation does not buy.</b> Writing a contract is not deploying a control. A
+      passing suite written by the implementer is not independent review. Synthetic CI fixtures are
+      not representative production adoption. A roadmap is not a funded commitment.
+    </div>
+  </div>
+</section>
+
+<section id="check">
+  <div class="wrap">
+    <h2>Self-check</h2>
+    <p class="lede">Six questions on the things that actually bite.
+      <span class="score" id="score">Not started</span></p>
+    <noscript><p class="lede">The self-check needs JavaScript. Everything else on this page works
+    without it — the questions are the only part that does not.</p></noscript>
+    <div id="quiz"></div>
+  </div>
+</section>
+
+<section id="sources">
+  <div class="wrap">
+    <h2>Sources and next steps</h2>
+    <p class="lede">This portal is a study guide over two primary sources. Read them directly —
+    they carry detail this page compresses.</p>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <h3><a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-Native SDLC playbook</a></h3>
+        <p>Published by Anthropic on the Claude blog, 21 August 2026, by <strong>Louis
+        Claxton</strong>. The conceptual framework: the six stages, the traditional-versus-AI-native
+        shifts, and each play's prerequisites, governance considerations and metrics.</p>
+      </div>
+      <div class="card">
+        <h3><a href="https://github.com/timwukp/agent-skills-best-practice/tree/main/skills/skills/ai-native-sdlc">The <code>ai-native-sdlc</code> skill</a></h3>
+        <p>The enforceable implementation: artifact templates, the stage gate, the
+        <code>PreToolUse</code> hook, the CI gate, and reference docs on enforcement, limitations,
+        the threat model and enterprise adoption.</p>
+      </div>
+    </div>
+    <h3>Where to go from here</h3>
+    <p class="lede" style="font-size:1rem">Start with any stage whose prerequisites you already
+    meet — the stages are modular, and nothing points into Stage 1. If you only do one thing, make
+    one check <strong>required</strong> and push a change that violates it, so you learn what your
+    process actually enforces rather than what it says.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>AI-Native SDLC — a training portal.</strong> An independent study guide, <strong>not
+    affiliated</strong> with or endorsed by Anthropic. Trademarks belong to their owners. This is
+    <strong>not the skill's source repository</strong>; the skill lives in
+    <a href="https://github.com/timwukp/agent-skills-best-practice/tree/main/skills/skills/ai-native-sdlc">agent-skills-best-practice</a>.</p>
+    <p>Content summarises the two sources linked above. The honest-limits figures are the reference
+    implementation's own published self-assessment, not an external audit — no independent
+    assessment of it exists.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- stage tabs ---------------------------------------------------------------
+     Panels ship VISIBLE in the markup. The script only applies `hidden` and the ARIA
+     state, so a reader with scripting disabled sees all six stacked rather than none.
+     That is why the no-JS requirement is met by construction, not by a fallback. */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+
+  function select(tab){
+    tabs.forEach(function(t){
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      var panel = document.getElementById(t.getAttribute('aria-controls'));
+      if(panel){ panel.hidden = !on; }
+    });
+  }
+
+  if(tabs.length){
+    select(tabs[0]);
+    tabs.forEach(function(tab, i){
+      tab.addEventListener('click', function(){ select(tab); });
+      tab.addEventListener('keydown', function(e){
+        var step = e.key === 'ArrowRight' ? 1
+                 : e.key === 'ArrowLeft'  ? -1
+                 : e.key === 'Home'       ? -Infinity
+                 : e.key === 'End'        ? Infinity : 0;
+        if(!step) return;
+        e.preventDefault();
+        var n = step === -Infinity ? 0
+              : step === Infinity  ? tabs.length - 1
+              : (i + step + tabs.length) % tabs.length;
+        tabs[n].focus();
+        select(tabs[n]);
+      });
+    });
+  }
+
+  /* ---- self-check ---------------------------------------------------------------
+     Built by script into an empty container. Absent without JavaScript, never broken.
+     The explanation is the teaching, so it states the mechanism rather than "correct". */
+  var QUESTIONS = [
+    { q:"A required CI check reports <code>skipped</code> on a pull request. What does branch protection see?",
+      o:["A failure that blocks the merge","A pass — skipped counts as green","Nothing; the PR waits forever"],
+      a:1,
+      why:"GitHub treats a skipped required check as PASSING. That is why a summary job must run <code>if: always()</code> and inspect its dependencies' results explicitly, instead of being skipped alongside them." },
+
+    { q:"You accept a plan and record the approval against <code>git rev-parse HEAD</code>, then push two more commits and open the PR. What happens?",
+      o:["It passes — HEAD is the branch being merged","The gate refuses: the recorded base is not the PR's merge base","Nothing, the field is advisory"],
+      a:1,
+      why:"The gate verifies the binding against the pull request's <em>merge base</em> — the fork point the approval was granted at. The branch tip moves after the branch is cut, so recording HEAD stores a value the gate will not match." },
+
+    { q:"A chain merges and you leave its artifacts as <code>accepted</code>. What is still open?",
+      o:["Nothing; the merge closed it","A spent approval that still authorises edits to every file its plan named","Only a cosmetic status field"],
+      a:1,
+      why:"<code>.sdlc/active</code> keeps pointing at the chain and its plan still names those files, so the next unrelated edit passes with no new approval. Marking it <code>shipped</code> makes the chain refuse and tells the author to open a new intent." },
+
+    { q:"Where does the model belong in Stage 6 detection?",
+      o:["It decides whether the metric breached its band","Nowhere — detection is a deterministic, unit-tested script","It votes, and a human breaks the tie"],
+      a:1,
+      why:"Detection stays entirely deterministic and version-controlled. The agent is invoked only <em>after</em> a band is breached, and the tier decides what it may then do: log, diagnose read-only, or act by opening a pull request." },
+
+    { q:"Your eval asserts that <code>submit-btn</code> appears in the HTML and it passes. The button sits behind <code>display:none</code>. What does the green gate mean?",
+      o:["The change is correct","The declared checks passed — nothing more","The eval is broken and CI will flag it"],
+      a:1,
+      why:"This is the weak-eval hole, and it is a permanent limitation rather than a bug. A gate can verify that an eval exists and passes; it cannot judge whether the eval measures the thing that matters. Only a human reading the requirement catches it." },
+
+    { q:"The reference implementation ships a written contract for a tamper-evident audit sink. What has that achieved?",
+      o:["The control is now in place","An integration boundary is documented; the control is still enterprise-owned and not provided","It raises the readiness score"],
+      a:1,
+      why:"Writing a contract is not deploying a control. The audit trail is still git history in the repository being governed, which the governed party can rewrite — so the control remains enterprise-owned, and documentation does not move the 36/80 score." }
+  ];
+
+  var quiz = document.getElementById('quiz');
+  var scoreEl = document.getElementById('score');
+  if(!quiz) return;
+
+  var answered = 0, correct = 0;
+
+  QUESTIONS.forEach(function(item, qi){
+    var box = document.createElement('div');
+    box.className = 'q';
+
+    var stem = document.createElement('p');
+    stem.className = 'stem';
+    stem.innerHTML = (qi + 1) + '. ' + item.q;
+    box.appendChild(stem);
+
+    var opts = document.createElement('div');
+    opts.className = 'opts';
+
+    var fb = document.createElement('p');
+    fb.className = 'fb';
+    fb.setAttribute('role', 'status');
+
+    var done = false;
+
+    item.o.forEach(function(text, oi){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.innerHTML = text;
+      b.addEventListener('click', function(){
+        if(done) return;
+        done = true;
+        answered++;
+        var right = oi === item.a;
+        if(right){ correct++; }
+        b.className = right ? 'right' : 'wrong';
+        if(!right && opts.children[item.a]){ opts.children[item.a].className = 'right'; }
+        fb.innerHTML = (right ? '<strong>Correct.</strong> ' : '<strong>Not quite.</strong> ') + item.why;
+        if(scoreEl){
+          scoreEl.textContent = answered + ' / ' + QUESTIONS.length + ' answered · ' + correct + ' correct';
+        }
+      });
+      opts.appendChild(b);
+    });
+
+    box.appendChild(opts);
+    box.appendChild(fb);
+    quiz.appendChild(box);
+  });
+})();
+</script>
+</body>
+</html>

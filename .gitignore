@@ -1,0 +1,3 @@
+# Local verification leaves bytecode behind; it is not part of the site.
+__pycache__/
+*.pyc
