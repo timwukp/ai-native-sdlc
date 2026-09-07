@@ -1,10 +1,31 @@
 # Intent: a training portal that teaches the AI-native SDLC by enforcing it
 
-- **Slug:** loopsmith-training-portal
+- **Slug:** sdlc-training-portal
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** Tim WU
+- **Accepted-by:** pending — re-acceptance after Amendment 1
 - **Date:** 2026-09-07
-- **Status:** accepted
+- **Status:** draft
+
+## Amendment 1 — the name is decided, and it is not a new one (requires re-acceptance)
+
+The owner has chosen **`ai-native-sdlc`** as the repository name, giving
+`https://timwukp.github.io/ai-native-sdlc/`. This closes open question 1 and supersedes the
+earlier proposal of `Loopsmith`; the slug is renamed from `loopsmith-training-portal` to
+`sdlc-training-portal` so no rejected brand persists in the artifact chain.
+
+Two consequences recorded rather than left implicit:
+
+- This reverses the earlier instruction to invent a new name. That is the owner's call, and the
+  portal will carry no separate brand — it is titled after the lifecycle it teaches.
+- The repository name is now **identical to the skill's own name**, and to the skill directory
+  inside `agent-skills-best-practice`. The URL is clearer for it, but the two are easy to
+  confuse. The portal must therefore state on the page that it is a training site *about* the
+  skill rather than the skill's source repository, and link to the skill's actual location.
+  This becomes a success criterion below.
+
+A pre-existing local directory of the same name was found during the rename, holding
+`.claude/skills/ai-native-sdlc`. It is unrelated to this work, was left untouched, and this
+project lives at a separate path.
 
 ## Problem
 
@@ -99,16 +120,18 @@ work. It must not be committed as-is on the strength of already existing.
 8. It names the three enterprise-owned controls and says plainly that the skill does not
    provide them.
 9. It credits both sources and states its own independence.
-10. Interactive elements are operable by keyboard alone, and the page is usable with
+10. It states plainly that it is a training site about the skill, **not** the skill's source
+    repository, and links to the skill's actual location — required because the repository name
+    is identical to the skill's own name.
+11. Interactive elements are operable by keyboard alone, and the page is usable with
     JavaScript disabled (content must not be JS-gated).
-11. The portal's own repository carries the committed artifact chain for this slug, with
+12. The portal's own repository carries the committed artifact chain for this slug, with
     acceptance and sign-off in separate human commits.
 
 ## Open questions
 
-1. **Repository name, which fixes the URL.** Proposed `Loopsmith`, giving
-   `https://timwukp.github.io/Loopsmith/`. No such repository exists today. The owner decides;
-   the name cannot change after publication without breaking links.
+1. ~~Repository name.~~ **Closed by Amendment 1:** `ai-native-sdlc`, giving
+   `https://timwukp.github.io/ai-native-sdlc/`.
 2. **Who creates the repository and enables Pages?** Both are owner actions on the owner's
    account. Proposed: the agent prepares the content and the owner creates the repository,
    pushes, and enables Pages — consistent with the existing rule that the agent does not push
@@ -116,6 +139,6 @@ work. It must not be committed as-is on the strength of already existing.
 3. **Single page or multi-page?** Proposed single page for the first release: it is linkable,
    printable, and has no navigation to maintain. Multi-page can follow if the content outgrows
    it.
-4. **Does a self-check quiz belong in the first release,** given criterion 10 requires the page
+4. **Does a self-check quiz belong in the first release,** given criterion 11 requires the page
    to work without JavaScript? Proposed: yes, as a progressive enhancement that is absent
    rather than broken when JS is off. To be settled in design.
