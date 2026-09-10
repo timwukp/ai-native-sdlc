@@ -36,6 +36,11 @@ PAGE = HERE / "index.html"
 FAILURES: list[str] = []
 CHECKS = 0
 
+# Spec requirement 7. The page was 44,972 bytes before the figures; three inline SVGs at
+# roughly 4-5 KB each land near 58 KB. The ceiling is deliberately close: a fourth figure
+# would not fit, which is one of the reasons the spec ships three.
+PAGE_BUDGET = 75_000
+
 # Text that must appear somewhere in the rendered text. Semantic markers, not whole sentences,
 # so editorial improvement is not blocked while a missing claim still fails.
 REQUIRED_TEXT: tuple[tuple[str, str], ...] = (
@@ -135,6 +140,94 @@ class Page(HTMLParser):
         return re.sub(r"\s+", " ", "".join(self.text_parts))
 
 
+def figure_checks(html: str, fig_id: str, label: str, content_px: int) -> None:
+    """Verify one inline SVG figure.
+
+    Takes fig_id so a failure names WHICH figure — three copy-pasted blocks would drift as
+    the checks grow, and an unattributed "effective font too small" tells the reader nothing.
+    """
+    # Isolate this figure: from its <figure> wrapper to the matching close.
+    m = re.search(
+        rf'<figure[^>]*id="{re.escape(fig_id)}"[^>]*>(.*?)</figure>', html, re.S
+    )
+    if not m:
+        check(f"{label}: figure {fig_id} is present", False,
+              f"no <figure id=\"{fig_id}\"> in index.html")
+        return
+    fig = m.group(1)
+
+    svg = re.search(r"<svg\b[^>]*>", fig)
+    if not svg:
+        check(f"{label}: contains an inline <svg>", False, "the figure has no SVG root")
+        return
+    root = svg.group(0)
+
+    # --- legibility, by the spec's formula rather than by eye --------------------
+    vb = re.search(r'viewBox="\s*[\d.]+\s+[\d.]+\s+([\d.]+)\s+([\d.]+)\s*"', root)
+    fonts = [float(f) for f in re.findall(r'font-size="([\d.]+)"', fig)]
+    if not vb or not fonts:
+        check(f"{label}: has a viewBox and sized text", False,
+              "cannot compute legibility without both a viewBox width and a font-size")
+    else:
+        vb_w = float(vb.group(1))
+        eff = min(fonts) * content_px / vb_w
+        check(
+            f"{label}: effective font >= 12px at {content_px}px content",
+            eff >= 12.0,
+            f"min font {min(fonts)}px over viewBox width {vb_w} renders at {eff:.2f}px; "
+            f"either narrow the canvas or raise the type",
+        )
+
+    # height="auto" is INVALID on <svg> (it expects a length) and threw a console error in
+    # every draft. The container controls height via CSS.
+    check(f"{label}: no height attribute on the <svg> root",
+          "height=" not in root,
+          "height on the root is either invalid (auto) or fights the container")
+
+    # --- accessibility ----------------------------------------------------------
+    check(f"{label}: role=\"img\"", 'role="img"' in root)
+    labelled = re.search(r'aria-labelledby="([^"]+)"', root)
+    check(f"{label}: aria-labelledby present", labelled is not None)
+    if labelled:
+        for ref in labelled.group(1).split():
+            check(f"{label}: aria-labelledby target {ref} exists",
+                  f'id="{ref}"' in fig,
+                  "a dangling reference sends a screen reader to nothing")
+    title = re.search(r"<title[^>]*>(.*?)</title>", fig, re.S)
+    desc = re.search(r"<desc[^>]*>(.*?)</desc>", fig, re.S)
+    check(f"{label}: <title> is non-empty", bool(title and title.group(1).strip()))
+    check(f"{label}: <desc> conveys the mechanism (>= 80 chars)",
+          bool(desc and len(desc.group(1).strip()) >= 80),
+          "a desc that only repeats the title is a dead end for assistive technology")
+
+    cap = re.search(r"<figcaption[^>]*>(.*?)</figcaption>", fig, re.S)
+    check(f"{label}: has a <figcaption>", cap is not None)
+    if cap and title:
+        ct = re.sub(r"<[^>]*>", "", cap.group(1)).strip()
+        check(f"{label}: figcaption says something the title does not",
+              ct.casefold() != title.group(1).strip().casefold(),
+              "the title names the diagram; the caption should say what to take from it")
+
+    # --- id namespacing ---------------------------------------------------------
+    ids = re.findall(r'\sid="([^"]+)"', fig)
+    stray = [i for i in ids if not i.startswith(f"{fig_id}-")]
+    check(f"{label}: every id is prefixed {fig_id}-", not stray, f"unprefixed: {stray}")
+
+    # --- no dependency, no script ----------------------------------------------
+    for token, why in (
+        ("<script", "a figure must render with scripting disabled"),
+        ("<image", "an external raster breaks file:// and the single-file property"),
+        ("@import", "an import is a network dependency"),
+    ):
+        check(f"{label}: no {token}", token not in fig, why)
+    check(f"{label}: no inline event handlers",
+          re.search(r'\son[a-z]+="', fig) is None,
+          "an event handler is script by another name")
+    ext = [u for u in re.findall(r'(?:href|src)="([^"]+)"', fig)
+           if u.startswith(("http://", "https://", "//"))]
+    check(f"{label}: no external reference", not ext, f"found {ext}")
+
+
 def check(name: str, cond: bool, detail: str = "") -> None:
     global CHECKS
     CHECKS += 1
@@ -224,6 +317,45 @@ def main() -> int:
     print(" honesty")
     for phrase in FORBIDDEN:
         check(f"avoids overclaim {phrase!r}", phrase not in low)
+
+    print(" figures")
+    # The divisor is the CONTENT width, not the viewport. .wrap has horizontal padding, so
+    # a 360px viewport gives less than 360px to the figure, and measuring against the
+    # viewport is what made a draft look like it passed at 12.0px when it renders at 10.7px.
+    # Read the padding out of the stylesheet rather than hard-coding it, so a future CSS
+    # change fails this check instead of silently invalidating every figure.
+    pad = re.search(r"\.wrap\{[^}]*padding:\s*0\s+(\d+)px", raw)
+    check("the .wrap padding is readable from the stylesheet", pad is not None,
+          "without it the legibility divisor would be a guess")
+    content_px = 360 - 2 * int(pad.group(1)) if pad else 360
+    print(f"  (mobile content width = 360 - 2x{pad.group(1) if pad else '?'} = {content_px}px)")
+
+    for fig_id, label in (
+        ("dg1", "loop"),
+        ("dg2", "enforcement"),
+        ("dg3", "unbound approval"),
+    ):
+        figure_checks(raw, fig_id, label, content_px)
+
+    # Truthfulness: the enforcement figure simplifies a ladder, and simplification is where
+    # overclaiming hides. The strongest tier is still bypassable by a repository admin, and
+    # that fact must survive into the figure rather than being tidied away.
+    m2 = re.search(r'<figure[^>]*id="dg2"[^>]*>(.*?)</figure>', raw, re.S)
+    fig2 = m2.group(1).casefold() if m2 else ""
+    check("enforcement figure keeps the admin bypass on the record",
+          "admin" in fig2,
+          "the strongest tier leaks to a repository administrator; a figure that omits it "
+          "claims more than the honest-limits section does")
+
+    # Every id in the document must be unique, figures included.
+    all_ids = re.findall(r'\sid="([^"]+)"', raw)
+    dupes = sorted({i for i in all_ids if all_ids.count(i) > 1})
+    check("no duplicate id anywhere in the page", not dupes, f"duplicated: {dupes}")
+
+    size = len(raw.encode("utf-8"))
+    check(f"page is within the {PAGE_BUDGET:,}-byte budget", size <= PAGE_BUDGET,
+          f"page is {size:,} bytes")
+    print(f"  (page size = {size:,} bytes of {PAGE_BUDGET:,})")
 
     print()
     print(f"{CHECKS} checks, {len(FAILURES)} failed")
