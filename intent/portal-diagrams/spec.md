@@ -3,7 +3,7 @@
 - **Intent:** ./intent.md
 - **Author:** Kiro (AI agent)
 - **Signed-off-by:** Tim WU
-- **Status:** signed-off
+- **Status:** shipped
 
 ## The measurement that drives every requirement below
 

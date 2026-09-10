@@ -4,7 +4,7 @@
 - **Author:** Kiro (AI agent)
 - **Accepted-by:** Tim WU
 - **Accepted-for:** 2858bab1f3c05393d7249f726a62f8e9c5962d32
-- **Status:** accepted
+- **Status:** shipped
 
 `Accepted-for` must be `git merge-base origin/main HEAD`, which at draft time is
 `2858bab` (full sha recorded at acceptance).
