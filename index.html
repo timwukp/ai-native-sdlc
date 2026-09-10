@@ -20,6 +20,9 @@
   a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--acc2);outline-offset:2px;border-radius:3px}
   .wrap{max-width:1020px;margin:0 auto;padding:0 20px}
   code,kbd{font-family:var(--mono);font-size:.9em;background:var(--bg3);padding:.12em .38em;border-radius:4px}
+  figure.dg{margin:22px 0;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px}
+  figure.dg svg{display:block;width:100%;height:auto}
+  figure.dg figcaption{margin-top:10px;font-size:.94rem;color:var(--dim)}
   pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto}
   pre code{background:none;padding:0;font-size:.86rem;line-height:1.6}
   h1,h2,h3,h4{line-height:1.25;letter-spacing:-.01em}
@@ -205,6 +208,83 @@
 <section id="loop">
   <div class="wrap">
     <h2>The loop, and the artifact that carries it</h2>
+    <figure id="dg1" class="dg">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 486" width="100%" role="img" aria-labelledby="dg1-title dg1-desc" font-family="system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+        <title id="dg1-title">Each stage commits one artifact, and Stage 6 re-enters Stage 1</title>
+        <desc id="dg1-desc">The six stages run in order. Each ends by committing one machine-readable artifact and the next begins by reading it: Stage 1 Plan commits intent.md, Stage 2 Design commits spec.md, Stage 3 Build commits plan.md then the diff and tests, Stage 4 Test commits the verification target and evals, Stage 5 Deploy commits the pull request with REVIEW.md findings, and Stage 6 Maintain commits bands.yaml. A bands.yaml breach writes a fresh intent.md, which re-enters Stage 1. That is what makes it a loop rather than a line. Each green dot marks a commit, and the chain of commits becomes the audit trail: who asked for what, what the agent produced, and who approved it.</desc>
+      
+        <defs>
+          <marker id="dg1-fwd" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7fb3ff"/>
+          </marker>
+          <marker id="dg1-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8ee8ca"/>
+          </marker>
+        </defs>
+      
+        <text x="180" y="18" text-anchor="middle" font-size="15" font-weight="700" fill="#e9eff5">Six stages, one loop</text>
+        <text x="180" y="38" text-anchor="middle" font-size="14" fill="#b3c2d2">each stage ends by committing one artifact</text>
+      
+        <!-- the commit rail: every stage ends in a commit -->
+        <path d="M 330 80 L 330 410" stroke="#3c7a56" stroke-width="1.4"/>
+      
+        <!-- the loop: Stage 6 re-enters Stage 1 -->
+        <path d="M 48 410 L 26 410 L 26 80 L 44 80" fill="none" stroke="#8ee8ca" stroke-width="2.4" stroke-dasharray="6 4" marker-end="url(#dg1-ret)"/>
+        <text x="16" y="245" text-anchor="middle" font-size="14" fill="#8ee8ca" transform="rotate(-90 16 245)">re-enters Stage 1</text>
+      
+        <g>
+          <rect x="48" y="54" width="300" height="52" rx="8" fill="#151b23" stroke="#7fb3ff"/>
+          <text x="60" y="75" font-size="14" font-weight="700" fill="#e9eff5">Stage 1 · Plan</text>
+          <text x="60" y="95" font-size="14" fill="#8ee8ca">intent.md</text>
+          <circle cx="330" cy="80" r="4.5" fill="#8ce99a"/>
+        </g>
+        <path d="M 198 106 L 198 116" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
+      
+        <g>
+          <rect x="48" y="120" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
+          <text x="60" y="141" font-size="14" font-weight="700" fill="#e9eff5">Stage 2 · Design</text>
+          <text x="60" y="161" font-size="14" fill="#8ee8ca">spec.md</text>
+          <circle cx="330" cy="146" r="4.5" fill="#8ce99a"/>
+        </g>
+        <path d="M 198 172 L 198 182" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
+      
+        <g>
+          <rect x="48" y="186" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
+          <text x="60" y="207" font-size="14" font-weight="700" fill="#e9eff5">Stage 3 · Build</text>
+          <text x="60" y="227" font-size="14" fill="#8ee8ca">plan.md → diff + tests</text>
+          <circle cx="330" cy="212" r="4.5" fill="#8ce99a"/>
+        </g>
+        <path d="M 198 238 L 198 248" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
+      
+        <g>
+          <rect x="48" y="252" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
+          <text x="60" y="273" font-size="14" font-weight="700" fill="#e9eff5">Stage 4 · Test</text>
+          <text x="60" y="293" font-size="14" fill="#8ee8ca">verification target + evals/</text>
+          <circle cx="330" cy="278" r="4.5" fill="#8ce99a"/>
+        </g>
+        <path d="M 198 304 L 198 314" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
+      
+        <g>
+          <rect x="48" y="318" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
+          <text x="60" y="339" font-size="14" font-weight="700" fill="#e9eff5">Stage 5 · Deploy</text>
+          <text x="60" y="359" font-size="14" fill="#8ee8ca">PR + REVIEW.md findings</text>
+          <circle cx="330" cy="344" r="4.5" fill="#8ce99a"/>
+        </g>
+        <path d="M 198 370 L 198 380" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
+      
+        <g>
+          <rect x="48" y="384" width="300" height="52" rx="8" fill="#151b23" stroke="#8ee8ca"/>
+          <text x="60" y="405" font-size="14" font-weight="700" fill="#e9eff5">Stage 6 · Maintain</text>
+          <text x="60" y="425" font-size="14" fill="#8ee8ca">bands.yaml breach → new intent.md</text>
+          <circle cx="330" cy="410" r="4.5" fill="#8ce99a"/>
+        </g>
+      
+        <circle cx="20" cy="454" r="4.5" fill="#8ce99a"/>
+        <text x="32" y="459" font-size="14" fill="#b3c2d2">each dot is a commit</text>
+        <text x="14" y="478" font-size="14" fill="#b3c2d2">the chain of commits becomes the audit trail</text>
+      </svg>
+      <figcaption>Stage 6 is not the end: a breached band writes the next <code>intent.md</code>, which re-enters Stage 1.</figcaption>
+    </figure>
     <p class="lede">Each stage <strong>ends by committing one machine-readable artifact</strong>,
     and the next stage <strong>begins by reading it</strong>. The chain of commits becomes the
     audit trail: who asked for what, what the agent produced, and who approved it.</p>
@@ -460,6 +540,63 @@ tiers:
       path-filtered never reports on a pull request that touches other files — which blocks that
       pull request forever, waiting on a check that can never arrive.
     </div>
+    <figure id="dg2" class="dg">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 516" width="100%" role="img" aria-labelledby="dg2-title dg2-desc" font-family="system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+        <title id="dg2-title">Enforcement strength by mechanism, and how each one is bypassed</title>
+        <desc id="dg2-desc">Three strengths of enforcement, each bypassable in a different way. Advisory is a skill: it makes the agent likely to follow the process, and is bypassable by not consulting it. Deterministic is a PreToolUse hook at write time; it fails open and is bypassable by removing it. A merge gate is a CI gate on the pull request; it fails closed and is bypassable only by an admin unsetting the required check. A green-or-red check is not a gate: until the check is marked required in branch protection, a red check can still be merged.</desc>
+      
+        <defs>
+          <marker id="dg2-leak" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff9b9b"/>
+          </marker>
+        </defs>
+      
+        <text x="180" y="18" text-anchor="middle" font-size="15" font-weight="700" fill="#e9eff5">Enforcement strength by mechanism</text>
+        <text x="180" y="38" text-anchor="middle" font-size="14" fill="#b3c2d2">writing the process down does not enforce it</text>
+      
+        <!-- Advisory -->
+        <g>
+          <rect x="12" y="54" width="336" height="98" rx="8" fill="#1e1a13" stroke="#303b4a"/>
+          <rect x="12" y="54" width="4" height="98" rx="2" fill="#ffc078"/>
+          <text x="26" y="76" font-size="14" font-weight="700" fill="#ffc078">Advisory</text>
+          <text x="26" y="98" font-size="14" fill="#efe0c6">A skill. Makes the agent likely to</text>
+          <text x="26" y="116" font-size="14" fill="#efe0c6">follow the process.</text>
+          <path d="M 26 138 L 44 138" stroke="#ff9b9b" stroke-width="2" marker-end="url(#dg2-leak)"/>
+          <text x="52" y="143" font-size="14" fill="#ff9b9b">Yes — by not consulting it</text>
+        </g>
+      
+        <!-- Deterministic -->
+        <g>
+          <rect x="12" y="166" width="336" height="98" rx="8" fill="#111823" stroke="#303b4a"/>
+          <rect x="12" y="166" width="7" height="98" rx="2" fill="#7fb3ff"/>
+          <text x="29" y="188" font-size="14" font-weight="700" fill="#7fb3ff">Deterministic</text>
+          <text x="29" y="210" font-size="14" fill="#e9eff5">A PreToolUse hook at write time.</text>
+          <text x="29" y="228" font-size="14" fill="#e9eff5">It fails open.</text>
+          <path d="M 29 250 L 47 250" stroke="#ff9b9b" stroke-width="2" marker-end="url(#dg2-leak)"/>
+          <text x="55" y="255" font-size="14" fill="#ff9b9b">Yes — by removing it</text>
+        </g>
+      
+        <!-- Merge gate -->
+        <g>
+          <rect x="12" y="278" width="336" height="116" rx="8" fill="#12211d" stroke="#3c7a56"/>
+          <rect x="12" y="278" width="10" height="116" rx="2" fill="#8ee8ca"/>
+          <text x="32" y="300" font-size="14" font-weight="700" fill="#8ee8ca">Merge gate</text>
+          <text x="32" y="322" font-size="14" fill="#cfe9df">A CI gate on the pull request.</text>
+          <text x="32" y="340" font-size="14" fill="#cfe9df">It fails closed.</text>
+          <path d="M 32 362 L 50 362" stroke="#ff9b9b" stroke-width="2" marker-end="url(#dg2-leak)"/>
+          <text x="58" y="367" font-size="14" fill="#ff9b9b">Only by an admin unsetting</text>
+          <text x="58" y="385" font-size="14" fill="#ff9b9b">the required check</text>
+        </g>
+      
+        <!-- the caveat, in full -->
+        <rect x="12" y="408" width="336" height="96" rx="8" fill="#2b1818" stroke="#7a4a4a"/>
+        <text x="24" y="430" font-size="14" font-weight="700" fill="#ff9b9b">A green-or-red check is not a gate.</text>
+        <text x="24" y="452" font-size="14" fill="#efe0c6">Until the check is marked required in</text>
+        <text x="24" y="470" font-size="14" fill="#efe0c6">branch protection, a red check can</text>
+        <text x="24" y="488" font-size="14" fill="#efe0c6">still be merged.</text>
+      </svg>
+      <figcaption>Each tier removes one escape route. None removes them all — the strongest still yields to a repository admin.</figcaption>
+    </figure>
     <h3>Three failure modes worth memorising</h3>
     <div class="grid g3" style="margin-top:14px">
       <div class="card"><h4>A skipped check reads as passing</h4><p>GitHub treats a
@@ -473,6 +610,61 @@ tiers:
         enterprise-level ruleset whose bypass list excludes repository admins is genuinely
         unbypassable. In a personal repository this gap cannot be closed at all.</p></div>
     </div>
+    <figure id="dg3" class="dg">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 416" width="100%" role="img" aria-labelledby="dg3-title dg3-desc" font-family="system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+        <title id="dg3-title">An unbound approval outlives its change</title>
+        <desc id="dg3-desc">A branch is cut from commit A. The base branch then advances to B and C while the branch adds X and Y. If the acceptance records no base commit, it keeps authorising later edits, so the base must be recorded and compared with the pull request's real merge base, which is A. Recording the base tip C instead claims review of commits B and C that nobody looked at, and recording the branch tip Y makes the approval self-certifying because it moves with every push.</desc>
+      
+        <defs>
+          <marker id="dg3-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#b3c2d2"/>
+          </marker>
+        </defs>
+      
+        <text x="180" y="18" text-anchor="middle" font-size="15" font-weight="700" fill="#e9eff5">An unbound approval outlives its change</text>
+        <text x="14" y="40" font-size="14" fill="#b3c2d2">If the acceptance records no base commit,</text>
+        <text x="14" y="58" font-size="14" fill="#b3c2d2">it keeps authorising later edits.</text>
+      
+        <!-- base branch -->
+        <text x="14" y="86" font-size="14" fill="#b3c2d2">base</text>
+        <path d="M 82 108 L 118 108" stroke="#b3c2d2" stroke-width="1.6" marker-end="url(#dg3-a)"/>
+        <path d="M 154 108 L 190 108" stroke="#b3c2d2" stroke-width="1.6" marker-end="url(#dg3-a)"/>
+        <circle cx="68" cy="108" r="15" fill="#1c2430" stroke="#8ee8ca" stroke-width="2.4"/>
+        <text x="68" y="113" text-anchor="middle" font-size="14" font-weight="700" fill="#8ee8ca">A</text>
+        <circle cx="136" cy="108" r="15" fill="#151b23" stroke="#303b4a"/>
+        <text x="136" y="113" text-anchor="middle" font-size="14" fill="#b3c2d2">B</text>
+        <circle cx="206" cy="108" r="15" fill="#151b23" stroke="#7a4a4a"/>
+        <text x="206" y="113" text-anchor="middle" font-size="14" fill="#b3c2d2">C</text>
+        <text x="230" y="113" font-size="14" fill="#ff9b9b">base tip</text>
+      
+        <!-- branch -->
+        <path d="M 68 126 L 68 152" stroke="#7fb3ff" stroke-width="1.6" marker-end="url(#dg3-a)"/>
+        <text x="14" y="184" font-size="14" fill="#7fb3ff">yours</text>
+        <path d="M 82 180 L 118 180" stroke="#7fb3ff" stroke-width="1.6" marker-end="url(#dg3-a)"/>
+        <circle cx="68" cy="180" r="15" fill="#151b23" stroke="#7fb3ff"/>
+        <text x="68" y="185" text-anchor="middle" font-size="14" fill="#7fb3ff">X</text>
+        <circle cx="136" cy="180" r="15" fill="#151b23" stroke="#7a4a4a"/>
+        <text x="136" y="185" text-anchor="middle" font-size="14" fill="#7fb3ff">Y</text>
+        <text x="160" y="185" font-size="14" fill="#ff9b9b">branch tip</text>
+      
+        <!-- verdicts, full sentences -->
+        <rect x="12" y="210" width="336" height="62" rx="8" fill="#16281c" stroke="#3c7a56"/>
+        <text x="26" y="232" font-size="14" font-weight="700" fill="#8ce99a">A — the real merge base</text>
+        <text x="26" y="252" font-size="14" fill="#cfe9df">Record the base, and compare it with</text>
+        <text x="26" y="266" font-size="14" fill="#cfe9df">the pull request's real merge base.</text>
+      
+        <rect x="12" y="282" width="336" height="58" rx="8" fill="#2b1818" stroke="#7a4a4a"/>
+        <text x="26" y="304" font-size="14" font-weight="700" fill="#ff9b9b">C — the base tip</text>
+        <text x="26" y="324" font-size="14" fill="#efe0c6">Claims review of B and C, which</text>
+        <text x="26" y="338" font-size="14" fill="#efe0c6">nobody looked at.</text>
+      
+        <rect x="12" y="350" width="336" height="58" rx="8" fill="#2b1818" stroke="#7a4a4a"/>
+        <text x="26" y="372" font-size="14" font-weight="700" fill="#ff9b9b">Y — the branch tip</text>
+        <text x="26" y="392" font-size="14" fill="#efe0c6">Moves with every push, so the</text>
+        <text x="26" y="406" font-size="14" fill="#efe0c6">approval certifies itself.</text>
+      </svg>
+      <figcaption>The approval was granted against the fork point, so that is the commit <code>Accepted-for</code> must record.</figcaption>
+    </figure>
   </div>
 </section>
 
