@@ -3,7 +3,8 @@
 - **Slug:** readme-front-door
 - **Author:** Claude (AI agent)
 - **Date:** 2026-09-16
-- **Status:** draft
+- **Accepted-by:** Tim WU
+- **Status:** accepted
 
 ## Problem
 
