@@ -677,15 +677,21 @@ tiers:
     <ol class="steps">
       <li>
         <h4>Install the two enforcement layers</h4>
-        <p>Vendor the gate scripts, the write-time hook and the merge gate into the repository.</p>
+        <p>Vendor the gate scripts, the write-time hook and the merge gate into the repository.
+        The write-time hook ships as two configs for one script — Kiro's hook format and Claude
+        Code's <code>.claude/settings.json</code> — carrying an identical command, so install the
+        one for the runtime the repo actually uses (both is harmless).</p>
         <pre><code>SKILL=&lt;the skill's directory&gt;
-mkdir -p .kiro/hooks .sdlc/scripts .github/workflows
-cp "$SKILL"/templates/kiro-hooks/sdlc-gate.json        .kiro/hooks/
+mkdir -p .kiro/hooks .claude .sdlc/scripts .github/workflows
+cp "$SKILL"/templates/kiro-hooks/sdlc-gate.json        .kiro/hooks/          # Kiro
+cp "$SKILL"/templates/claude-code-hooks/settings.json  .claude/settings.json # Claude Code
 cp "$SKILL"/scripts/sdlc_pretooluse_hook.py            .sdlc/scripts/
 cp "$SKILL"/scripts/sdlc_gate.py                       .sdlc/scripts/
 cp "$SKILL"/scripts/sdlc_ci_gate.py                    .sdlc/scripts/
 cp "$SKILL"/templates/github-workflows/sdlc-gate.yml   .github/workflows/
 echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
+        <p>If <code>.claude/settings.json</code> already exists, merge the
+        <code>hooks.PreToolUse</code> entry into it rather than copying over it.</p>
       </li>
       <li>
         <h4>Do the one step only a human can</h4>
@@ -794,6 +800,15 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
       <b>What documentation does not buy.</b> Writing a contract is not deploying a control. A
       passing suite written by the implementer is not independent review. Synthetic CI fixtures are
       not representative production adoption. A roadmap is not a funded commitment.
+    </div>
+
+    <div class="note">
+      <b>What this deliberately does not cover.</b> The playbook contains plays with no
+      counterpart here or in the skill, declared so an unmapped play reads as a decision rather
+      than an omission: auto mode and staged autonomy (an agent-runtime permission setting, not a
+      repository artifact), legacy-system onboarding, recurring security scans (an ops control
+      that runs whether or not a change is in flight), and Claude on call. Managed settings appear
+      only as the named non-overridable tier an enterprise must supply from outside the repository.
     </div>
   </div>
 </section>

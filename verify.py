@@ -78,6 +78,17 @@ REQUIRED_TEXT: tuple[tuple[str, str], ...] = (
     ("independence statement", "not affiliated"),
     # disambiguation (spec requirement 14)
     ("disambiguation", "not the skill's source repository"),
+    # dual-surface lab (review-follow-ups requirement 1): the hands-on lab must show the
+    # write-time hook on BOTH runtimes the skill ships configs for
+    ("lab: Kiro hook install path", ".kiro/hooks"),
+    ("lab: Claude Code hook install path", ".claude/settings.json"),
+    ("lab: Claude Code template name", "claude-code-hooks"),
+    # scope declaration (review-follow-ups requirement 2): plays the playbook has and
+    # this material deliberately does not cover, declared rather than implied
+    ("scope: auto mode declared out of scope", "auto mode"),
+    ("scope: recurring security scans declared", "recurring security scans"),
+    ("scope: Claude on call declared", "Claude on call"),
+    ("scope: legacy onboarding declared", "legacy-system onboarding"),
 )
 
 # Phrases whose presence is a failure. The page must not be able to claim these.
