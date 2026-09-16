@@ -25,9 +25,12 @@ the checks grow, which is how the mutation-count coupling in the other repositor
 
 ## Files changed (in order of work)
 
-1. `/home/ec2-user/.kiro/crew/workspace/ai-native-sdlc-portal/verify.py` — the per-figure helper and
+*Post-ship note (2026-09-16): the two paths below originally leaked the build environment as
+absolute workspace paths; de-environmented to repo-relative with no other change.*
+
+1. `verify.py` — the per-figure helper and
    its three invocations, plus the page-weight assertion. Written and observed failing FIRST.
-2. `/home/ec2-user/.kiro/crew/workspace/ai-native-sdlc-portal/index.html` — three `<figure>` blocks
+2. `index.html` — three `<figure>` blocks
    containing the inline SVGs, at the placements resolved above.
 
 `README.md` is deliberately **not** in this list: it references `verify.py` by name and describes how
@@ -61,7 +64,7 @@ by grep rather than assumed.
 ### Red-first target
 
 ```sh
-cd /home/ec2-user/.kiro/crew/workspace/ai-native-sdlc-portal
+cd ~/.kiro/crew/workspace/ai-native-sdlc-portal
 python3 verify.py      # must fail: three figure groups, no figures present
 ```
 

@@ -32,7 +32,7 @@ a mechanism land faster than a paragraph does.
 ## Prior art, and its measured state
 
 Six diagram drafts already exist, produced by six parallel sub-agents and kept **outside this
-repository** at `/home/ec2-user/.kiro/crew/workspace/diagram-drafts/`. They were not produced by
+repository** at `~/.kiro/crew/workspace/diagram-drafts/`. They were not produced by
 this process and carry no review, so they are candidate material, not work product.
 
 Each has been independently verified — not accepted on its author's report, several of which proved

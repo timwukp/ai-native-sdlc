@@ -196,5 +196,5 @@ is not blocked while a missing claim still fails.
 
 ---
 Gate: owner signs off; flagged concerns worked first. Applied org skills/versions recorded:
-`ai-native-sdlc` as installed at `/home/ec2-user/.kiro/skills/ai-native-sdlc`, matching
+`ai-native-sdlc` as installed at `~/.kiro/skills/ai-native-sdlc`, matching
 `agent-skills-best-practice` main at commit 3a343d5d55b8af60d17e033568f1a7908722cb3d.
