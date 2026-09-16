@@ -1,15 +1,41 @@
 # AI-Native SDLC — a training portal
 
-A single-page training site for the AI-native software development lifecycle: six stages, one
-committed artifact per stage, and stage gates that are enforceable rather than aspirational.
+**Read it here: <https://timwukp.github.io/ai-native-sdlc/>**
+
+One page, nothing to install, works offline once loaded. Written to be worked through in one
+sitting.
+
+A training site for the AI-native software development lifecycle: six stages, one committed
+artifact per stage, and stage gates that are enforceable rather than aspirational.
 
 **This is not the skill's source repository.** The `ai-native-sdlc` skill — its gate scripts,
-templates, hook, CI gate and reference docs — lives in
+templates, hooks, CI gate and reference docs — lives in
 [agent-skills-best-practice](https://github.com/timwukp/agent-skills-best-practice/tree/main/skills/skills/ai-native-sdlc).
 This repository holds a study guide *about* it. The two share a name, which is why this paragraph
 exists.
 
 Independent, and not affiliated with or endorsed by Anthropic.
+
+## What you will learn
+
+Work through the page once and you should be able to:
+
+- **run one change through the loop** — `intent.md` → `spec.md` → `plan.md` → diff + tests →
+  PR review → control bands — and name the artifact and the gate at each stage;
+- **tell the three enforcement strengths apart** — advisory skill, fail-open write-time hook,
+  fail-closed required check — and say why a green-or-red check is not a gate until branch
+  protection makes it one;
+- **recognise the four traps before paying for them**: a skipped required check that reads as
+  passing, an approval bound to no base, a merged chain left `accepted` that launders the next
+  change, and a weak eval that passes while the feature is broken. Each was a real defect in
+  the reference implementation's history, not a hypothetical;
+- **state honestly where this is and is not adoptable** — the reference implementation scores
+  itself 36/80 against an enterprise control rubric, and the page explains why publishing that
+  number is the point rather than a confession.
+
+The page ends with a **hands-on lab**: install the write-time hook (Kiro or Claude Code) and
+the CI gate into a scratch repository, then let the gate refuse you a few times on purpose.
+A self-check at the end tells you whether it stuck.
 
 ## Sources
 
@@ -18,7 +44,20 @@ The portal is a study guide over two primary sources, both linked from the page:
 - [The AI-Native SDLC playbook](https://claude.com/blog/the-ai-native-sdlc-playbook) — Anthropic,
   21 August 2026, by Louis Claxton. The framework: stages, shifts, governance, metrics.
 - The [`ai-native-sdlc` skill](https://github.com/timwukp/agent-skills-best-practice/tree/main/skills/skills/ai-native-sdlc)
-  — the enforceable implementation.
+  — the enforceable implementation: artifact templates, a write-time `PreToolUse` hook for Kiro
+  and Claude Code, a CI merge gate, and reference docs on enforcement and limitations.
+
+## How this site was built
+
+Through the lifecycle it teaches. `intent/` holds the committed chain: an accepted `intent.md`, a
+signed-off `spec.md`, an accepted `plan.md` bound to the commit its approval covered, a red
+verification target committed before the page existed, and then the implementation. The history
+is meant to be read as a worked example, including the places where the plan had to be amended
+and re-accepted.
+
+One thing stated plainly because the process cares about it: a prototype of this page was written
+*before* the intent existed, and was deliberately kept out of this repository as an unreviewed
+draft rather than committed on the strength of already existing.
 
 ## Layout
 
@@ -62,19 +101,8 @@ changes them:
 ## How it publishes
 
 GitHub Pages serves this repository from branch `main`, path `/`, so `index.html` must stay at
-the repository root. There is no build step and no workflow — a push to `main` is the deploy.
-
-## How this site was built
-
-Through the lifecycle it teaches. `intent/` holds the committed chain: an accepted `intent.md`, a
-signed-off `spec.md`, an accepted `plan.md` bound to the commit its approval covered, a red
-verification target committed before the page existed, and then the implementation. The history
-is meant to be read as a worked example, including the places where the plan had to be amended
-and re-accepted.
-
-One thing stated plainly because the process cares about it: a prototype of this page was written
-*before* the intent existed, and was deliberately kept out of this repository as an unreviewed
-draft rather than committed on the strength of already existing.
+the repository root. There is no build step and no workflow — a push to `main` is the deploy,
+and <https://timwukp.github.io/ai-native-sdlc/> is what it deploys to.
 
 ## Licence
 
