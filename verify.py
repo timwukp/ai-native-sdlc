@@ -363,9 +363,15 @@ def governance_checks() -> None:
         bool(re.search(r"^\s{2}sdlc-gate:\s*$", sdlc, re.M)),
         "the caller job id is part of the required-check identity",
     )
+    gate_sha = "582c818fbb6699ed8813df2d5a722a2c4da32f5c"
     check(
         "SDLC workflow: immutable binding-capable pin",
-        "sdlc-gate-reusable.yml@582c818fbb6699ed8813df2d5a722a2c4da32f5c" in sdlc,
+        f"sdlc-gate-reusable.yml@{gate_sha}" in sdlc,
+    )
+    check(
+        "SDLC workflow: gate script uses the same immutable ref",
+        bool(re.search(rf"^\s*gate-ref:\s*{gate_sha}\s*$", sdlc, re.M)),
+        "cross-repository callers cannot rely on github.workflow_sha selecting the gate repo",
     )
     check("SDLC workflow: active intent is required",
           bool(re.search(r"^\s*require-active:\s*true\s*$", sdlc, re.M)))
