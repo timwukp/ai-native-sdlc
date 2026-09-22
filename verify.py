@@ -359,6 +359,11 @@ def governance_checks() -> None:
     unfiltered_pull_request(sdlc, "SDLC workflow")
     read_only_permissions(sdlc, "SDLC workflow")
     check(
+        "SDLC workflow: stable caller job id",
+        bool(re.search(r"^\s{2}sdlc-gate:\s*$", sdlc, re.M)),
+        "the caller job id is part of the required-check identity",
+    )
+    check(
         "SDLC workflow: immutable binding-capable pin",
         "sdlc-gate-reusable.yml@582c818fbb6699ed8813df2d5a722a2c4da32f5c" in sdlc,
     )
