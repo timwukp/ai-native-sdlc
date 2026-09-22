@@ -1,0 +1,14 @@
+name: SDLC Gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sdlc-gate:
+    uses: timwukp/agent-skills-best-practice/.github/workflows/sdlc-gate-reusable.yml@582c818fbb6699ed8813df2d5a722a2c4da32f5c
+    with:
+      require-active: true

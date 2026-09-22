@@ -98,11 +98,30 @@ changes them:
   because the panels ship without `hidden` and only the script applies it;
 - contrast of the actual colour pairs used (measured, not estimated).
 
+## Contributing changes
+
+Every portal revision goes through a pull request before GitHub Pages changes. Start a fresh
+artifact chain, make sure its accepted plan names every source file the change touches, and run:
+
+```sh
+python3 verify.py
+```
+
+Paste the actual check count and result into the pull request. Visual changes also carry viewport,
+keyboard-only and JavaScript-disabled evidence using the pull-request template.
+
+A workflow check is not a gate until branch protection marks it required. This repository requires
+the portal verifier and SDLC gate on `main`, applies those checks to the owner, and requires the
+branch to be up to date. That prevents accidental bypass during ordinary work; it is not an
+unbypassable enterprise control, because a personal-repository owner can still edit or remove the
+protection rule. [Issue #4](https://github.com/timwukp/ai-native-sdlc/issues/4) is the bootstrap
+record for these controls.
+
 ## How it publishes
 
 GitHub Pages serves this repository from branch `main`, path `/`, so `index.html` must stay at
-the repository root. There is no build step and no workflow — a push to `main` is the deploy,
-and <https://timwukp.github.io/ai-native-sdlc/> is what it deploys to.
+the repository root. There is no build step: a pull request is verified and merged to `main`, then
+<https://timwukp.github.io/ai-native-sdlc/> is updated from that branch.
 
 ## Licence
 

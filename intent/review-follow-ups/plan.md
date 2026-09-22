@@ -4,7 +4,7 @@
 - **Author:** Claude (AI agent)
 - **Accepted-by:** Tim WU
 - **Accepted-for:** b5c89603f1b05e2ed02015a8c25a0f73859952c6
-- **Status:** accepted
+- **Status:** shipped
 
 `Accepted-for` is `git merge-base origin/main HEAD` at draft time: `b5c8960`.
 

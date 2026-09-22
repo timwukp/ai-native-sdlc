@@ -4,7 +4,7 @@
 - **Author:** Claude (AI agent)
 - **Signed-off-by:** Tim WU
 - **Accepted-by:** Tim WU
-- **Status:** signed-off
+- **Status:** shipped
 
 ## Requirements
 
