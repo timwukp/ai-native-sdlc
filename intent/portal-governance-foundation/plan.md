@@ -2,9 +2,9 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Accepted-for:** 2544ab776ccc1b1b6ba00b447783fc1f31e0de1f
-- **Status:** draft
+- **Status:** accepted
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time. It records the fork point
 whose repository state this plan was reviewed against, not the branch tip containing the artifact
