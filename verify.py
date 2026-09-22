@@ -249,6 +249,175 @@ def check(name: str, cond: bool, detail: str = "") -> None:
         FAILURES.append(name)
 
 
+def checked_text(path: pathlib.Path, label: str) -> str:
+    """Read a required governance file, reporting absence as a finding."""
+    exists = path.is_file()
+    check(f"{label} exists", exists, f"not found: {path.relative_to(HERE)}")
+    return path.read_text(encoding="utf-8") if exists else ""
+
+
+def yaml_mapping_block(text: str, key: str) -> tuple[bool, str]:
+    """Return one indentation-bounded YAML mapping block.
+
+    This is intentionally narrower than a YAML parser: the repository stays stdlib-only, and the
+    final syntax proof is GitHub accepting and running the workflow. Bounding the block matters
+    because `push` may correctly use `branches: [main]` while a required `pull_request` trigger
+    must remain unfiltered.
+    """
+    lines = text.splitlines()
+    key_re = re.compile(rf"^(\s*){re.escape(key)}:\s*(?:#.*)?$")
+    for i, line in enumerate(lines):
+        match = key_re.match(line)
+        if not match:
+            continue
+        indent = len(match.group(1))
+        block: list[str] = []
+        for child in lines[i + 1:]:
+            stripped = child.strip()
+            if not stripped or stripped.startswith("#"):
+                block.append(child)
+                continue
+            child_indent = len(child) - len(child.lstrip())
+            if child_indent <= indent:
+                break
+            block.append(child)
+        return True, "\n".join(block)
+    return False, ""
+
+
+def unfiltered_pull_request(text: str, label: str) -> None:
+    """Require a pull_request trigger with no condition that can suppress a required check."""
+    found, block = yaml_mapping_block(text, "pull_request")
+    check(f"{label}: pull_request trigger exists", found)
+    forbidden = re.findall(
+        r"^\s*(branches|branches-ignore|paths|paths-ignore):", block, re.M
+    )
+    check(
+        f"{label}: pull_request trigger is unfiltered",
+        found and not forbidden,
+        f"forbidden filters: {forbidden}",
+    )
+    check(
+        f"{label}: never uses pull_request_target",
+        bool(text) and "pull_request_target" not in text,
+        "fork-controlled content must not run with base-repository privileges",
+    )
+
+
+def read_only_permissions(text: str, label: str) -> None:
+    """Require exactly one workflow-level permission: contents read."""
+    found, block = yaml_mapping_block(text, "permissions")
+    entries = re.findall(r"^\s*([A-Za-z_-]+):\s*([^#\s]+)", block, re.M)
+    check(
+        f"{label}: workflow permissions are contents read only",
+        found and entries == [("contents", "read")],
+        f"permissions={entries}",
+    )
+    check(
+        f"{label}: no repository secret",
+        bool(text) and "secrets." not in text,
+        "the two deterministic gates need no credential",
+    )
+
+
+def artifact_status(relative: str) -> str:
+    path = HERE / relative
+    if not path.is_file():
+        return ""
+    match = re.search(r"^- \*\*Status:\*\*\s*(\S+)", path.read_text(encoding="utf-8"), re.M)
+    return match.group(1) if match else ""
+
+
+def governance_checks() -> None:
+    """Verify the repository controls that make the portal's own contribution path honest."""
+    portal = checked_text(
+        HERE / ".github/workflows/portal-verify.yml", "portal verification workflow"
+    )
+    sdlc = checked_text(HERE / ".github/workflows/sdlc-gate.yml", "SDLC caller workflow")
+    template = checked_text(
+        HERE / ".github/pull_request_template.md", "pull-request evidence template"
+    )
+    readme = checked_text(HERE / "README.md", "README")
+
+    unfiltered_pull_request(portal, "portal workflow")
+    read_only_permissions(portal, "portal workflow")
+    push_found, push_block = yaml_mapping_block(portal, "push")
+    check("portal workflow: main push trigger exists",
+          push_found and bool(re.search(r"branches:\s*\[main\]", push_block)))
+    dispatch_found, _ = yaml_mapping_block(portal, "workflow_dispatch")
+    check("portal workflow: manual trigger exists", dispatch_found)
+    check(
+        "portal workflow: stable check name",
+        bool(re.search(r"^\s{4}name:\s*portal verify\s*$", portal, re.M)),
+        "the job display name is the branch-protection contract",
+    )
+    check("portal workflow: runs the checked-in verifier",
+          bool(re.search(r"^\s*run:\s*python3 verify\.py\s*$", portal, re.M)))
+    check("portal workflow: verifier is fail-closed",
+          bool(portal) and "continue-on-error" not in portal)
+
+    unfiltered_pull_request(sdlc, "SDLC workflow")
+    read_only_permissions(sdlc, "SDLC workflow")
+    check(
+        "SDLC workflow: stable caller job id",
+        bool(re.search(r"^\s{2}sdlc-gate:\s*$", sdlc, re.M)),
+        "the caller job id is part of the required-check identity",
+    )
+    gate_sha = "582c818fbb6699ed8813df2d5a722a2c4da32f5c"
+    check(
+        "SDLC workflow: immutable binding-capable pin",
+        f"sdlc-gate-reusable.yml@{gate_sha}" in sdlc,
+    )
+    check(
+        "SDLC workflow: gate script uses the same immutable ref",
+        bool(re.search(rf"^\s*gate-ref:\s*{gate_sha}\s*$", sdlc, re.M)),
+        "cross-repository callers cannot rely on github.workflow_sha selecting the gate repo",
+    )
+    check("SDLC workflow: active intent is required",
+          bool(re.search(r"^\s*require-active:\s*true\s*$", sdlc, re.M)))
+
+    template_needles = (
+        ("tracking issue", "Tracking issue"),
+        ("active intent", "Active intent"),
+        ("actual verification", "python3 verify.py"),
+        ("plan compliance", "matches the accepted plan"),
+        ("conditional visual evidence", "Visual changes only"),
+        ("360px evidence", "360px"),
+        ("768px evidence", "768px"),
+        ("1440px evidence", "1440px"),
+        ("keyboard evidence", "keyboard-only"),
+        ("no-JavaScript evidence", "JavaScript disabled"),
+        ("unavailable-check disclosure", "could not run"),
+    )
+    for name, needle in template_needles:
+        check(f"pull-request template: {name}", bool(template) and needle in template)
+
+    readme_needles = (
+        ("contribution section", "## Contributing changes"),
+        ("pull-request path", "Every portal revision goes through a pull request"),
+        ("local verification", "python3 verify.py"),
+        ("required-check distinction", "A workflow check is not a gate until"),
+        ("owner bypass limit", "personal-repository owner can still edit or remove"),
+        ("bootstrap record", "issues/4"),
+    )
+    for name, needle in readme_needles:
+        check(f"README governance: {name}", bool(readme) and needle in readme)
+
+    for relative in (
+        "intent/review-follow-ups/intent.md",
+        "intent/review-follow-ups/spec.md",
+        "intent/review-follow-ups/plan.md",
+        "intent/readme-front-door/intent.md",
+        "intent/readme-front-door/spec.md",
+        "intent/readme-front-door/plan.md",
+    ):
+        check(
+            f"spent chain closed: {relative}",
+            artifact_status(relative) == "shipped",
+            f"status={artifact_status(relative)!r}, need 'shipped'",
+        )
+
+
 def main() -> int:
     print("portal verification")
 
@@ -258,6 +427,9 @@ def main() -> int:
         print(f"\n{CHECKS} checks, {len(FAILURES)} failed")
         print("FAILED: the page has not been implemented yet")
         return 1
+
+    print(" governance")
+    governance_checks()
 
     raw = PAGE.read_text(encoding="utf-8")
     p = Page()
