@@ -2,9 +2,9 @@
 
 - **Slug:** portal-governance-foundation
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-09-22
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/4
 
 ## Problem
@@ -82,15 +82,15 @@ that limit honestly.
    the governance change.
 10. After PR 0 merges, an artifact-only closeout PR marks this chain `shipped` before PR 1 begins.
 
-## Open questions
+## Resolved questions
 
-1. Should branch protection apply to the owner (`enforce_admins: true`)? Recommendation: yes, to
-   prevent accidental bypass during ordinary work, while documenting that the owner can still edit
-   the rule itself.
-2. Should `main` require an approving review now? Recommendation: no required approval count until
-   an independent collaborator exists; require pull requests and checks first, because GitHub does
-   not treat self-approval as independent review.
-3. Which exact check names become required? Deferred until PR 0 runs. They will be copied from the
+1. **Owner enforcement:** branch protection applies to the repository owner
+   (`enforce_admins: true`). This prevents accidental bypass during ordinary work while remaining
+   honest that the owner can still edit or remove the rule itself.
+2. **Review policy:** require pull requests and required checks now, with no approving-review count
+   until an independent collaborator exists. GitHub self-approval is not treated as independent
+   review.
+3. **Required-check names:** explicitly deferred until PR 0 runs. The names will be copied from the
    check-run API rather than guessed from workflow or job ids.
 
 ---
