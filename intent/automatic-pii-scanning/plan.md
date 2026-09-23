@@ -2,9 +2,9 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Accepted-for:** d9906f86d0460a758490ed3bebddc28acf6365e7
-- **Status:** draft
+- **Status:** accepted
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time. It binds approval to the
 protected `main` state after the PR 0 closeout, not to this branch's moving tip.
