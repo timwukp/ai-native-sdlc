@@ -2,9 +2,9 @@
 
 - **Slug:** responsive-portal-layout
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-09-23
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/10
 
 ## Problem
@@ -111,22 +111,18 @@ those modes now.
 14. After merge, an artifact-only pull request marks this chain shipped before mentor/self-paced PR 2
     begins.
 
-## Open questions
+## Resolved questions
 
-1. **Diagram strategy.** Cap each SVG near its 360-unit viewBox and raise its minimum internal type,
-   or redraw wider canvases? Recommendation: cap the canonical SVG at 360 CSS pixels and raise the
-   14-unit labels to at least 15 units where the corrected mobile formula requires it. This fixes
-   both ends without a second asset.
-2. **Figure-card width.** Keep a full-width card around a narrow centered diagram, or bound the whole
-   figure? Recommendation: bound and center the figure card so diagram, caption and border read as
-   one intentional component instead of a small graphic floating in a wide empty panel.
-3. **Compact tables.** Transform rows into cards or preserve table semantics in a local scroll
-   region? Recommendation: preserve the real table and wrap it in a labeled, keyboard-focusable
-   overflow region; a card transformation duplicates labels and risks screen-reader drift.
-4. **Visual evidence.** Enable the dashboard Browser panel or have the owner capture the accepted
-   viewports manually? Recommendation: enable Browser before implementation review so screenshot,
-   overflow and print checks can be performed in the same PR; if unavailable, owner capture is a
-   named human gate and the gap is not marked passing.
+1. **Diagram strategy:** cap each canonical SVG at 360 CSS pixels and raise the current 14-unit
+   labels to at least 15 units where required by the corrected mobile formula. Do not create a
+   second asset or redraw onto a wider canvas.
+2. **Figure-card width:** bound and center the whole figure card so diagram, caption and border form
+   one intentional component on wide displays.
+3. **Compact tables:** preserve semantic tables inside labeled, keyboard-focusable local overflow
+   regions. Do not transform rows into duplicate card markup.
+4. **Visual evidence:** use the dashboard Browser panel for 360px, 768px and 1440px rendered evidence.
+   Availability must be tested before relying on it; selecting this route is not itself evidence that
+   the Browser is configured.
 
 ---
 Gate: product owner accepts. The accepting commit is the record.
