@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "allowed_exact": [
+    "Tim WU"
+  ],
+  "allowed_patterns": [
+    "^[^@\\s]+@users\\.noreply\\.github\\.com$",
+    "^[^@\\s]+@example\\.(com|org|net)$"
+  ],
+  "markers": [],
+  "max_text_bytes": 1000000
+}

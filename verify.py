@@ -418,6 +418,101 @@ def governance_checks() -> None:
         )
 
 
+def privacy_checks() -> None:
+    """Verify every checked-in surface of the layered privacy guardrail."""
+    required = {
+        "privacy scanner": "scripts/privacy_scan.py",
+        "scanner tests": "scripts/test_privacy_scan.py",
+        "PreToolUse hook tests": "scripts/test_privacy_pretooluse_hook.py",
+        "Kiro config tests": "scripts/test_privacy_hook_config.py",
+        "pre-push tests": "scripts/test_privacy_pre_push.py",
+        "privacy mutation proof": "scripts/privacy_mutation_proof.py",
+        "privacy allowlist": ".privacy-allowlist.json",
+        "privacy PreToolUse hook": "scripts/privacy_pretooluse_hook.py",
+        "Kiro privacy hook config": ".kiro/hooks/privacy-scan.json",
+        "privacy Git pre-push hook": ".githooks/pre-push",
+        "privacy hook installer": "scripts/install_privacy_hooks.sh",
+        "privacy workflow": ".github/workflows/privacy-scan.yml",
+    }
+    texts = {
+        name: checked_text(HERE / relative, name)
+        for name, relative in required.items()
+    }
+
+    workflow = texts["privacy workflow"]
+    unfiltered_pull_request(workflow, "privacy workflow")
+    read_only_permissions(workflow, "privacy workflow")
+    push_found, push_block = yaml_mapping_block(workflow, "push")
+    check("privacy workflow: main push trigger exists",
+          push_found and bool(re.search(r"branches:\s*\[main\]", push_block)))
+    dispatch_found, _ = yaml_mapping_block(workflow, "workflow_dispatch")
+    check("privacy workflow: manual trigger exists", dispatch_found)
+    check(
+        "privacy workflow: stable job id",
+        bool(re.search(r"^\s{2}privacy-scan:\s*$", workflow, re.M)),
+    )
+    check(
+        "privacy workflow: stable check name",
+        bool(re.search(r"^\s{4}name:\s*privacy scan\s*$", workflow, re.M)),
+    )
+    check("privacy workflow: full-history checkout",
+          bool(re.search(r"^\s*fetch-depth:\s*0\s*$", workflow, re.M)))
+    for label, command in (
+        ("runs privacy tests", "python3 -m unittest discover -s scripts -p 'test_privacy*.py'"),
+        ("runs mutation proof", "python3 scripts/privacy_mutation_proof.py"),
+        ("scans the tracked tree", "python3 scripts/privacy_scan.py --repo ."),
+    ):
+        check(f"privacy workflow: {label}", bool(workflow) and command in workflow)
+    check("privacy workflow: required steps fail closed",
+          bool(workflow) and "continue-on-error" not in workflow)
+
+    hook_json = texts["Kiro privacy hook config"]
+    for label, needle in (
+        ("v1 format", '"version": "v1"'),
+        ("PreToolUse trigger", '"trigger": "PreToolUse"'),
+        ("write matcher", '"matcher": "write"'),
+        ("command action", '"type": "command"'),
+        ("checked-in adapter", "scripts/privacy_pretooluse_hook.py"),
+        ("bounded timeout", '"timeout": 15'),
+        ("enabled", '"enabled": true'),
+    ):
+        check(f"Kiro privacy hook: {label}", bool(hook_json) and needle in hook_json)
+
+    allowlist = texts["privacy allowlist"]
+    check("privacy allowlist: schema 1",
+          bool(re.search(r'"schema_version"\s*:\s*1', allowlist)))
+    for forbidden in ("exclude_paths", "exclude_categories", "skip_files", "skip_directories"):
+        check(f"privacy allowlist: no {forbidden}",
+              bool(allowlist) and forbidden not in allowlist)
+
+    readme = (HERE / "README.md").read_text(encoding="utf-8")
+    for label, needle in (
+        ("full scan command", "python3 scripts/privacy_scan.py --repo ."),
+        ("POSIX-only terminal hook", "POSIX-only"),
+        ("hook installer", "scripts/install_privacy_hooks.sh"),
+        ("pre-push bypass", "--no-verify"),
+        ("agent fail-open", "fails open"),
+        ("CI fail-closed", "fails closed"),
+        ("redacted findings", "never prints the matched value"),
+        ("clean-scan limit", "does not prove the repository contains no PII"),
+        ("specialist scanner limit", "not a replacement for a specialist secret scanner"),
+    ):
+        check(f"README privacy: {label}", needle in readme)
+
+    # Build the old machine identity at runtime so this verifier does not become a fresh leak of
+    # the literal it is removing. Only the two measured baseline artifacts should need remediation.
+    old_user = "".join(("ec2", "-user"))
+    old_home = "/" + "/".join(("home", old_user)) + "/"
+    for relative in (
+        "intent/review-follow-ups/intent.md",
+        "intent/review-follow-ups/plan.md",
+    ):
+        body = (HERE / relative).read_text(encoding="utf-8")
+        check(f"privacy baseline genericized: {relative}",
+              old_user not in body and old_home not in body,
+              "a real developer-home marker remains in tracked history prose")
+
+
 def main() -> int:
     print("portal verification")
 
@@ -430,6 +525,8 @@ def main() -> int:
 
     print(" governance")
     governance_checks()
+    print(" privacy")
+    privacy_checks()
 
     raw = PAGE.read_text(encoding="utf-8")
     p = Page()

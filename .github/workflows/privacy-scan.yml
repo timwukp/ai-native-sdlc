@@ -1,0 +1,30 @@
+name: Privacy Scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  privacy-scan:
+    name: privacy scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run privacy scanner and hook tests
+        run: python3 -m unittest discover -s scripts -p 'test_privacy*.py'
+      - name: Prove every detection category is test-enforced
+        run: python3 scripts/privacy_mutation_proof.py
+      - name: Scan the complete tracked tree
+        run: python3 scripts/privacy_scan.py --repo .
