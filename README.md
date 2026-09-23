@@ -117,6 +117,40 @@ unbypassable enterprise control, because a personal-repository owner can still e
 protection rule. [Issue #4](https://github.com/timwukp/ai-native-sdlc/issues/4) is the bootstrap
 record for these controls.
 
+## Privacy guardrails
+
+The repository carries one deterministic scanner for high-confidence sensitive data. Run the full
+tracked-tree check locally with:
+
+```sh
+python3 scripts/privacy_scan.py --repo .
+```
+
+It checks developer-home and configured machine markers, email addresses, explicitly labelled phone
+numbers, Luhn-valid payment-card-shaped values, private-key headers, bearer credentials, and selected
+AWS, GitHub and Slack credential prefixes. The scanner reports category, repository-relative path and
+line number, but **never prints the matched value** or its hash.
+
+The Kiro write-time hook **fails open** on infrastructure errors so a broken local hook cannot stop
+all editing. The pull-request `privacy scan` check **fails closed** and is the binding backstop. The
+human-terminal pre-push hook is POSIX-only and opt-in; install it for this repository with:
+
+```sh
+sh scripts/install_privacy_hooks.sh
+git config --local --get core.hooksPath   # must print .githooks
+```
+
+A committed Git hook is not active until that installer succeeds. The installer refuses to replace
+another `core.hooksPath` or an existing pre-push hook. A user can bypass a Git hook with
+`--no-verify`, and CI cannot prevent a sensitive value reaching a public feature branch before CI
+starts; review findings and rotate/remove real credentials immediately.
+
+The narrow allowlist in `.privacy-allowlist.json` is reviewed like code. It permits public/example
+values only and cannot skip a path or category. This scanner does not infer names or free-form prose,
+and a clean result **does not prove the repository contains no PII**. Its selected credential
+patterns are **not a replacement for a specialist secret scanner** such as Gitleaks, and the feature
+is not privacy certification or a compliance control.
+
 ## How it publishes
 
 GitHub Pages serves this repository from branch `main`, path `/`, so `index.html` must stay at

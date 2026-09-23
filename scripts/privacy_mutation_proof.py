@@ -33,7 +33,7 @@ def main() -> int:
     source = SCANNER.read_text(encoding="utf-8")
     results: list[tuple[str, str]] = []
     for category in CATEGORIES:
-        anchor = f'        ("{category}", _scan_{category}),' 
+        anchor = f'        ("{category}", _scan_{category}),'
         if source.count(anchor) != 1:
             results.append((category, "broken"))
             continue

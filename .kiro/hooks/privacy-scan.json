@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Privacy scan",
+      "description": "Blocks agent writes containing high-confidence sensitive data without printing the matched value. Infrastructure failures fail open; the required privacy scan in CI is the fail-closed backstop.",
+      "trigger": "PreToolUse",
+      "matcher": "write",
+      "action": {
+        "type": "command",
+        "command": "sh -c '[ -f \"scripts/privacy_pretooluse_hook.py\" ] || exit 0; command -v python3 >/dev/null 2>&1 || exit 0; exec python3 \"scripts/privacy_pretooluse_hook.py\"'"
+      },
+      "timeout": 15,
+      "enabled": true
+    }
+  ]
+}

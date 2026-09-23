@@ -20,7 +20,7 @@
    one `cd` path becomes `~/`; a dated post-ship note above "Files changed" records the
    edit.
 4. `intent/portal-diagrams/intent.md`, `intent/sdlc-training-portal/spec.md` — one
-   `/home/ec2-user/` prefix each becomes `~/`.
+   `/home/<user>/` prefix each becomes `~/`.
 5. `.sdlc/active` — points at this slug.
 6. `intent/review-follow-ups/` — this chain.
 
@@ -34,5 +34,6 @@ fails.
 ## Verification
 
 `python3 verify.py` — red at step 1 (6 failures), then 128 checks / 0 failed after step 2,
-page weight 60,687 of 75,000 bytes. `grep -r "/home/ec2-user"` over the repo returns
+page weight 60,687 of 75,000 bytes. A tracked-tree grep for the machine-specific home
+prefix returns
 nothing after step 4.

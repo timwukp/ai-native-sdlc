@@ -20,7 +20,7 @@ three findings against this repository:
    security scans, Claude on call — and the page never says so. On a page whose whole
    honest-limits section exists to prevent overclaiming, silence reads as coverage.
 3. **Committed artifacts leak the build environment.** Five absolute
-   `/home/ec2-user/...` workspace paths sit in the shipped intent chains of a public
+   `/home/<user>/...` workspace paths sit in the shipped intent chains of a public
    repository. Harmless to the reader, but it is environment detail the artifacts never
    needed to carry.
 
