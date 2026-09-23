@@ -559,7 +559,8 @@ def responsive_checks(html: str, page: Page) -> tuple[float, float]:
     check("old 760px breakpoint is removed", "min-width:760px" not in html)
     check("top-level prose consumes the readable measure",
           bool(re.search(r"section>\.wrap>p[^}]*max-width:var\(--measure\)", html)))
-    check("hero spacing is fluid", bool(re.search(r"\.hero\{[^}]*padding:clamp\(", html)))
+    check("hero spacing is fluid without resetting inline gutter",
+          bool(re.search(r"\.hero\{[^}]*padding-block:clamp\(", html)))
     check("section spacing is fluid", bool(re.search(r"section\{[^}]*padding:clamp\(", html)))
 
     check("compact navigation is a two-column grid",
