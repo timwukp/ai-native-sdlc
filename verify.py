@@ -637,6 +637,10 @@ def responsive_checks(html: str, page: Page) -> tuple[float, float]:
     )
     check("compact SVG content box is positive", compact_svg > 0, f"width={compact_svg}")
     check("wide SVG content box is positive", wide_svg > 0, f"width={wide_svg}")
+    check("compact SVG content box is exactly 298px",
+          compact_svg == 298.0, f"width={compact_svg}")
+    check("wide SVG content box is exactly 360px",
+          wide_svg == 360.0, f"width={wide_svg}")
     print(
         f"  (responsive boxes: compact SVG {compact_svg:.0f}px; "
         f"wide SVG {wide_svg:.0f}px)"
