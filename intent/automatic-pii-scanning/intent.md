@@ -2,9 +2,9 @@
 
 - **Slug:** automatic-pii-scanning
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-09-23
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/6
 
 ## Problem
@@ -104,22 +104,17 @@ contains no PII.
 14. The chain is closed as `shipped` through an artifact-only pull request before responsive PR 1
     begins.
 
-## Open questions
+## Resolved questions
 
-1. **Secret detection dependency.** Use only the standard-library scanner in PR 0.5, or add a pinned
-   third-party scanner such as Gitleaks for broader credential coverage? Recommendation: keep the
-   shared PII rules standard-library-only and evaluate a pinned specialist secret scanner as a
-   separately owned dependency rather than pretending a few regexes equal mature secret scanning.
-2. **Terminal platforms.** Must the pre-push hook support Windows immediately, or may it be honestly
-   POSIX-only while CI remains cross-platform? Recommendation: POSIX-only first, explicitly labeled;
-   do not claim Windows support without a native exercised path.
-3. **Initial allowlist.** Which identities may be public? Recommendation: reserved example domains,
-   GitHub noreply addresses, and the existing public owner name only; no phone number or personal
-   mailbox.
-4. **CI scan scope.** Scan only the PR diff or the complete tracked tree? Recommendation: scan the
-   complete small tracked tree in CI so moving an existing value does not hide it; use changed data
-   locally for speed. History scanning and removal from already-published commits remain a separate
-   remediation problem.
+1. **Secret detection dependency:** PR 0.5 keeps its shared PII rules standard-library-only. A
+   mature specialist scanner such as Gitleaks is evaluated as a separate dependency and control;
+   this change does not claim that its selected credential patterns replace one.
+2. **Terminal platforms:** the pre-push hook may be POSIX-only in this first version, with that
+   limitation explicit. CI remains the backstop for changes produced on any contributor platform.
+3. **Initial allowlist:** permit reserved example domains, GitHub noreply addresses, and the
+   existing public owner name only. Do not add a personal mailbox or phone number.
+4. **CI scan scope:** scan the complete small tracked tree in CI; scan the pending write or outgoing
+   change locally for speed. Already-published Git history remains a separate remediation problem.
 
 ---
 Gate: product owner accepts. The accepting commit is the record.
