@@ -616,13 +616,14 @@ def responsive_checks(html: str, page: Page) -> tuple[float, float]:
     # Fallbacks expose today's real box model in the red state instead of replacing one guessed
     # divisor with another. The accepted tokens take over once the responsive CSS exists.
     old_wrap = re.search(r"\.wrap\{[^}]*padding:\s*0\s+(\d+)px", html)
-    old_figure = re.search(r"figure\.dg\{[^}]*border:(\d+)px[^}]*padding:(\d+)px", html)
+    old_border = re.search(r"figure\.dg\{[^}]*border:(\d+)px", html)
+    old_padding = re.search(r"figure\.dg\{[^}]*padding:(\d+)px", html)
     gutter = values["page-gutter"] if values["page-gutter"] else (
         float(old_wrap.group(1)) if old_wrap else 0.0
     )
-    border = float(old_figure.group(1)) if old_figure else 0.0
+    border = float(old_border.group(1)) if old_border else 0.0
     figure_padding = values["figure-padding"] if values["figure-padding"] else (
-        float(old_figure.group(2)) if old_figure else 0.0
+        float(old_padding.group(1)) if old_padding else 0.0
     )
     compact_inner = 360.0 - 2 * gutter - 2 * figure_padding - 2 * border
     compact_svg = min(
