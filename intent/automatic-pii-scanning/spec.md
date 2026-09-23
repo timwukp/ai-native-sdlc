@@ -2,8 +2,8 @@
 
 - **Intent:** ./intent.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
-- **Status:** draft
+- **Accepted-by:** Tim WU
+- **Status:** signed-off
 
 ## Baseline evidence
 
