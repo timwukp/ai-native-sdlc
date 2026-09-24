@@ -12,19 +12,21 @@
     --acc:#7fb3ff; --acc2:#8ee8ca; --warn:#ffc078; --bad:#ff9b9b; --good:#8ce99a;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --page-gutter:16px; --measure:70ch; --touch-target:44px;
+    --figure-padding:14px; --figure-max:420px; --diagram-max:360px;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased;overflow-wrap:anywhere}
   a{color:var(--acc)}
-  a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--acc2);outline-offset:2px;border-radius:3px}
-  .wrap{max-width:1020px;margin:0 auto;padding:0 20px}
+  a:focus-visible,button:focus-visible,summary:focus-visible,.table-scroll:focus-visible{outline:3px solid var(--acc2);outline-offset:2px;border-radius:3px}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 var(--page-gutter)}
   code,kbd{font-family:var(--mono);font-size:.9em;background:var(--bg3);padding:.12em .38em;border-radius:4px}
-  figure.dg{margin:22px 0;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px}
-  figure.dg svg{display:block;width:100%;height:auto}
+  figure.dg{max-width:var(--figure-max);margin:22px auto;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:var(--figure-padding)}
+  figure.dg svg{display:block;width:100%;max-width:var(--diagram-max);height:auto;margin:0 auto}
   figure.dg figcaption{margin-top:10px;font-size:.94rem;color:var(--dim)}
-  pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto}
-  pre code{background:none;padding:0;font-size:.86rem;line-height:1.6}
+  pre{max-width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto}
+  pre code{background:none;padding:0;font-size:.86rem;line-height:1.6;overflow-wrap:normal}
   h1,h2,h3,h4{line-height:1.25;letter-spacing:-.01em}
   h2{font-size:1.6rem;margin:0 0 .3em}
   h3{font-size:1.14rem;margin:1.6em 0 .4em}
@@ -37,10 +39,10 @@
   .brand{display:flex;align-items:center;gap:12px;padding:18px 0}
   .brand b{font-size:1.1rem;letter-spacing:-.02em}
   .brand span{color:var(--dim2);font-size:.85rem}
-  nav.top{display:flex;gap:18px;flex-wrap:wrap;padding-bottom:16px;font-size:.9rem}
-  nav.top a{color:var(--dim);text-decoration:none}
+  nav.top{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;padding-bottom:16px;font-size:.9rem}
+  nav.top a{min-height:var(--touch-target);display:flex;align-items:center;color:var(--dim);text-decoration:none;overflow-wrap:anywhere}
   nav.top a:hover{color:var(--fg);text-decoration:underline}
-  .hero{padding:48px 0 54px}
+  .hero{padding-block:clamp(36px,8vw,48px) clamp(42px,9vw,54px)}
   .hero h1{font-size:clamp(1.9rem,4.4vw,3rem);margin:0 0 .5em;max-width:26ch}
   .hero p{max-width:66ch;color:var(--dim);font-size:1.08rem}
   .disambig{margin:24px 0 0;border-left:3px solid var(--acc2);background:#12211d;padding:12px 15px;border-radius:0 8px 8px 0;font-size:.94rem;color:#cfe9df;max-width:70ch}
@@ -49,31 +51,29 @@
   .pill.ok{border-color:#3c7a56;color:var(--good)}
   .pill.no{border-color:#7a4a4a;color:var(--bad)}
   .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
-  .btn{display:inline-block;padding:11px 18px;border-radius:8px;font-weight:600;font-size:.94rem;text-decoration:none;border:1px solid var(--line);background:var(--bg2);color:var(--fg)}
+  .btn{display:inline-flex;align-items:center;min-height:var(--touch-target);padding:11px 18px;border-radius:8px;font-weight:600;font-size:.94rem;text-decoration:none;border:1px solid var(--line);background:var(--bg2);color:var(--fg)}
   .btn.p{background:var(--acc);border-color:var(--acc);color:#06121f}
 
-  section{padding:54px 0;border-top:1px solid var(--line)}
+  section{padding:clamp(40px,7vw,54px) 0;border-top:1px solid var(--line)}
+  section>.wrap>p{max-width:var(--measure)}
   .grid{display:grid;gap:16px}
-  @media(min-width:760px){.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}}
   .card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px}
   .card h3,.card h4{margin:.1em 0 .35em;font-size:1rem}
   .card p{margin:0;color:var(--dim);font-size:.93rem}
 
   .loop{display:grid;gap:10px;margin:22px 0 0}
-  @media(min-width:700px){.loop{grid-template-columns:repeat(3,1fr)}}
   .node{background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:10px;padding:12px 14px}
   .node b{display:block;font-size:.82rem;color:var(--dim2);text-transform:uppercase;letter-spacing:.07em}
   .node code{background:none;padding:0;color:var(--acc2);font-size:.92rem}
   .node.last{border-left-color:var(--acc2)}
 
-  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:22px 0 0}
-  .tabs button{background:var(--bg2);border:1px solid var(--line);color:var(--dim);padding:9px 14px;border-radius:8px;font:600 .88rem var(--sans);cursor:pointer}
+  .tabs{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;scroll-padding-inline:2px;margin:22px 0 0;padding:2px 2px 6px}
+  .tabs button{min-height:var(--touch-target);flex:0 0 auto;scroll-snap-align:start;background:var(--bg2);border:1px solid var(--line);color:var(--dim);padding:9px 14px;border-radius:8px;font:600 .88rem var(--sans);cursor:pointer}
   .tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#06121f}
   .panel{margin-top:18px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:20px}
   .panel[hidden]{display:none}
   .panel h3{margin-top:0}
   .vs{display:grid;gap:12px;margin:14px 0}
-  @media(min-width:700px){.vs{grid-template-columns:1fr 1fr}}
   .vs>div{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--bg3)}
   .vs b{display:block;font-size:.76rem;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
   .vs .t b{color:var(--dim2)} .vs .a b{color:var(--acc2)}
@@ -84,6 +84,8 @@
   .kv strong{color:var(--fg);font-weight:600}
   .art{display:inline-block;margin:12px 0 0;font-family:var(--mono);font-size:.88rem;color:var(--acc2);background:var(--bg3);border:1px solid var(--line);padding:6px 10px;border-radius:6px}
 
+  .table-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;border-radius:8px}
+  .table-scroll table{min-width:640px}
   table{width:100%;border-collapse:collapse;margin:18px 0 0;font-size:.92rem}
   caption{text-align:left;color:var(--dim2);font-size:.85rem;padding-bottom:8px}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -98,13 +100,13 @@
   ol.steps p{margin:0 0 8px;color:var(--dim);font-size:.93rem}
 
   details{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px 15px;margin:10px 0}
-  summary{cursor:pointer;font-weight:600;font-size:.95rem}
+  summary{cursor:pointer;font-weight:600;font-size:.95rem;min-height:var(--touch-target);display:flex;align-items:center}
   details p{color:var(--dim);font-size:.93rem;margin:.6em 0 0}
 
   .q{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0}
   .q p.stem{margin:0 0 12px;font-weight:600}
   .opts{display:grid;gap:8px}
-  .opts button{text-align:left;background:var(--bg3);border:1px solid var(--line);color:var(--fg);padding:11px 13px;border-radius:8px;font:.93rem var(--sans);cursor:pointer}
+  .opts button{text-align:left;min-height:var(--touch-target);background:var(--bg3);border:1px solid var(--line);color:var(--fg);padding:11px 13px;border-radius:8px;font:.93rem var(--sans);cursor:pointer}
   .opts button:hover{border-color:var(--acc)}
   .opts button.right{border-color:var(--good);background:#16281c}
   .opts button.wrong{border-color:var(--bad);background:#2b1818}
@@ -116,6 +118,33 @@
   footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--dim2);font-size:.88rem}
   footer a{color:var(--dim)}
   footer p{max-width:76ch}
+
+  @media(min-width:48rem){
+    :root{--page-gutter:20px}
+    nav.top{display:flex;gap:18px;flex-wrap:wrap}
+    .tabs{flex-wrap:wrap;overflow-x:visible;scroll-snap-type:none;padding:0}
+    .g3{grid-template-columns:repeat(3,1fr)}
+    .g2{grid-template-columns:repeat(2,1fr)}
+    .loop{grid-template-columns:repeat(3,1fr)}
+    .vs{grid-template-columns:1fr 1fr}
+  }
+  @media(min-width:64rem){nav.top{gap:20px}.hero h1{max-width:24ch}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  @media print{
+    :root{--page-gutter:0px}
+    html{scroll-behavior:auto}
+    body{background:#fff;color:#111;font-size:11pt}
+    header.site{background:none;border-color:#bbb}
+    nav.top,.cta,.tabs,.opts button{display:none}
+    section{padding:24px 0;border-color:#bbb;break-inside:avoid}
+    .panel[hidden]{display:block!important}
+    .panel,.card,.vs>div,.node,details,.q,.note,pre,code,kbd{background:#fff;color:#111;border-color:#bbb}
+    .lede,.card p,.vs p,.kv li,details p,.fb,figcaption,footer{color:#333!important}
+    a{color:#111;text-decoration:underline}
+    figure.dg{background:#fff;break-inside:avoid}
+    pre{white-space:pre-wrap;overflow:visible}
+    footer{border-color:#bbb;padding-bottom:0}
+  }
 </style>
 </head>
 <body>
@@ -222,66 +251,66 @@
           </marker>
         </defs>
       
-        <text x="180" y="18" text-anchor="middle" font-size="15" font-weight="700" fill="#e9eff5">Six stages, one loop</text>
-        <text x="180" y="38" text-anchor="middle" font-size="14" fill="#b3c2d2">each stage ends by committing one artifact</text>
+        <text x="180" y="18" text-anchor="middle" font-size="16" font-weight="700" fill="#e9eff5">Six stages, one loop</text>
+        <text x="180" y="38" text-anchor="middle" font-size="15" fill="#b3c2d2">each stage ends by committing one artifact</text>
       
         <!-- the commit rail: every stage ends in a commit -->
         <path d="M 330 80 L 330 410" stroke="#3c7a56" stroke-width="1.4"/>
       
         <!-- the loop: Stage 6 re-enters Stage 1 -->
         <path d="M 48 410 L 26 410 L 26 80 L 44 80" fill="none" stroke="#8ee8ca" stroke-width="2.4" stroke-dasharray="6 4" marker-end="url(#dg1-ret)"/>
-        <text x="16" y="245" text-anchor="middle" font-size="14" fill="#8ee8ca" transform="rotate(-90 16 245)">re-enters Stage 1</text>
+        <text x="16" y="245" text-anchor="middle" font-size="15" fill="#8ee8ca" transform="rotate(-90 16 245)">re-enters Stage 1</text>
       
         <g>
           <rect x="48" y="54" width="300" height="52" rx="8" fill="#151b23" stroke="#7fb3ff"/>
-          <text x="60" y="75" font-size="14" font-weight="700" fill="#e9eff5">Stage 1 · Plan</text>
-          <text x="60" y="95" font-size="14" fill="#8ee8ca">intent.md</text>
+          <text x="60" y="75" font-size="15" font-weight="700" fill="#e9eff5">Stage 1 · Plan</text>
+          <text x="60" y="95" font-size="15" fill="#8ee8ca">intent.md</text>
           <circle cx="330" cy="80" r="4.5" fill="#8ce99a"/>
         </g>
         <path d="M 198 106 L 198 116" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
       
         <g>
           <rect x="48" y="120" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
-          <text x="60" y="141" font-size="14" font-weight="700" fill="#e9eff5">Stage 2 · Design</text>
-          <text x="60" y="161" font-size="14" fill="#8ee8ca">spec.md</text>
+          <text x="60" y="141" font-size="15" font-weight="700" fill="#e9eff5">Stage 2 · Design</text>
+          <text x="60" y="161" font-size="15" fill="#8ee8ca">spec.md</text>
           <circle cx="330" cy="146" r="4.5" fill="#8ce99a"/>
         </g>
         <path d="M 198 172 L 198 182" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
       
         <g>
           <rect x="48" y="186" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
-          <text x="60" y="207" font-size="14" font-weight="700" fill="#e9eff5">Stage 3 · Build</text>
-          <text x="60" y="227" font-size="14" fill="#8ee8ca">plan.md → diff + tests</text>
+          <text x="60" y="207" font-size="15" font-weight="700" fill="#e9eff5">Stage 3 · Build</text>
+          <text x="60" y="227" font-size="15" fill="#8ee8ca">plan.md → diff + tests</text>
           <circle cx="330" cy="212" r="4.5" fill="#8ce99a"/>
         </g>
         <path d="M 198 238 L 198 248" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
       
         <g>
           <rect x="48" y="252" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
-          <text x="60" y="273" font-size="14" font-weight="700" fill="#e9eff5">Stage 4 · Test</text>
-          <text x="60" y="293" font-size="14" fill="#8ee8ca">verification target + evals/</text>
+          <text x="60" y="273" font-size="15" font-weight="700" fill="#e9eff5">Stage 4 · Test</text>
+          <text x="60" y="293" font-size="15" fill="#8ee8ca">verification target + evals/</text>
           <circle cx="330" cy="278" r="4.5" fill="#8ce99a"/>
         </g>
         <path d="M 198 304 L 198 314" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
       
         <g>
           <rect x="48" y="318" width="300" height="52" rx="8" fill="#151b23" stroke="#303b4a"/>
-          <text x="60" y="339" font-size="14" font-weight="700" fill="#e9eff5">Stage 5 · Deploy</text>
-          <text x="60" y="359" font-size="14" fill="#8ee8ca">PR + REVIEW.md findings</text>
+          <text x="60" y="339" font-size="15" font-weight="700" fill="#e9eff5">Stage 5 · Deploy</text>
+          <text x="60" y="359" font-size="15" fill="#8ee8ca">PR + REVIEW.md findings</text>
           <circle cx="330" cy="344" r="4.5" fill="#8ce99a"/>
         </g>
         <path d="M 198 370 L 198 380" stroke="#7fb3ff" stroke-width="2" marker-end="url(#dg1-fwd)"/>
       
         <g>
           <rect x="48" y="384" width="300" height="52" rx="8" fill="#151b23" stroke="#8ee8ca"/>
-          <text x="60" y="405" font-size="14" font-weight="700" fill="#e9eff5">Stage 6 · Maintain</text>
-          <text x="60" y="425" font-size="14" fill="#8ee8ca">bands.yaml breach → new intent.md</text>
+          <text x="60" y="405" font-size="15" font-weight="700" fill="#e9eff5">Stage 6 · Maintain</text>
+          <text x="60" y="425" font-size="15" fill="#8ee8ca">bands.yaml breach → new intent.md</text>
           <circle cx="330" cy="410" r="4.5" fill="#8ce99a"/>
         </g>
       
         <circle cx="20" cy="454" r="4.5" fill="#8ce99a"/>
-        <text x="32" y="459" font-size="14" fill="#b3c2d2">each dot is a commit</text>
-        <text x="14" y="478" font-size="14" fill="#b3c2d2">the chain of commits becomes the audit trail</text>
+        <text x="32" y="459" font-size="15" fill="#b3c2d2">each dot is a commit</text>
+        <text x="14" y="478" font-size="15" fill="#b3c2d2">the chain of commits becomes the audit trail</text>
       </svg>
       <figcaption>Stage 6 is not the end: a breached band writes the next <code>intent.md</code>, which re-enters Stage 1.</figcaption>
     </figure>
@@ -522,8 +551,9 @@ tiers:
     <h2>Advisory, deterministic, or actually binding</h2>
     <p class="lede">This is the distinction most adoptions get wrong. Writing the process down does
     not enforce it.</p>
-    <table>
-      <caption>Enforcement strength by mechanism</caption>
+    <div class="table-scroll" role="region" aria-label="Enforcement strength table" tabindex="0">
+      <table>
+        <caption>Enforcement strength by mechanism</caption>
       <thead><tr><th scope="col">Strength</th><th scope="col">Mechanism</th><th scope="col">Bypassable</th></tr></thead>
       <tbody>
         <tr><th scope="row">Advisory</th><td>A skill. Makes the agent <em>likely</em> to follow the
@@ -533,7 +563,8 @@ tiers:
         <tr><th scope="row">Merge gate</th><td>A CI gate on the pull request. It <strong>fails
           closed</strong>.</td><td>Only by an admin unsetting the required check</td></tr>
       </tbody>
-    </table>
+      </table>
+    </div>
     <div class="note">
       <b>A green-or-red check is not a gate.</b> Until the check is marked <strong>required</strong>
       in branch protection, a red check can still be merged. And a required check whose workflow is
@@ -551,49 +582,49 @@ tiers:
           </marker>
         </defs>
       
-        <text x="180" y="18" text-anchor="middle" font-size="15" font-weight="700" fill="#e9eff5">Enforcement strength by mechanism</text>
-        <text x="180" y="38" text-anchor="middle" font-size="14" fill="#b3c2d2">writing the process down does not enforce it</text>
+        <text x="180" y="18" text-anchor="middle" font-size="16" font-weight="700" fill="#e9eff5">Enforcement strength by mechanism</text>
+        <text x="180" y="38" text-anchor="middle" font-size="15" fill="#b3c2d2">writing the process down does not enforce it</text>
       
         <!-- Advisory -->
         <g>
           <rect x="12" y="54" width="336" height="98" rx="8" fill="#1e1a13" stroke="#303b4a"/>
           <rect x="12" y="54" width="4" height="98" rx="2" fill="#ffc078"/>
-          <text x="26" y="76" font-size="14" font-weight="700" fill="#ffc078">Advisory</text>
-          <text x="26" y="98" font-size="14" fill="#efe0c6">A skill. Makes the agent likely to</text>
-          <text x="26" y="116" font-size="14" fill="#efe0c6">follow the process.</text>
+          <text x="26" y="76" font-size="15" font-weight="700" fill="#ffc078">Advisory</text>
+          <text x="26" y="98" font-size="15" fill="#efe0c6">A skill. Makes the agent likely to</text>
+          <text x="26" y="116" font-size="15" fill="#efe0c6">follow the process.</text>
           <path d="M 26 138 L 44 138" stroke="#ff9b9b" stroke-width="2" marker-end="url(#dg2-leak)"/>
-          <text x="52" y="143" font-size="14" fill="#ff9b9b">Yes — by not consulting it</text>
+          <text x="52" y="143" font-size="15" fill="#ff9b9b">Yes — by not consulting it</text>
         </g>
       
         <!-- Deterministic -->
         <g>
           <rect x="12" y="166" width="336" height="98" rx="8" fill="#111823" stroke="#303b4a"/>
           <rect x="12" y="166" width="7" height="98" rx="2" fill="#7fb3ff"/>
-          <text x="29" y="188" font-size="14" font-weight="700" fill="#7fb3ff">Deterministic</text>
-          <text x="29" y="210" font-size="14" fill="#e9eff5">A PreToolUse hook at write time.</text>
-          <text x="29" y="228" font-size="14" fill="#e9eff5">It fails open.</text>
+          <text x="29" y="188" font-size="15" font-weight="700" fill="#7fb3ff">Deterministic</text>
+          <text x="29" y="210" font-size="15" fill="#e9eff5">A PreToolUse hook at write time.</text>
+          <text x="29" y="228" font-size="15" fill="#e9eff5">It fails open.</text>
           <path d="M 29 250 L 47 250" stroke="#ff9b9b" stroke-width="2" marker-end="url(#dg2-leak)"/>
-          <text x="55" y="255" font-size="14" fill="#ff9b9b">Yes — by removing it</text>
+          <text x="55" y="255" font-size="15" fill="#ff9b9b">Yes — by removing it</text>
         </g>
       
         <!-- Merge gate -->
         <g>
           <rect x="12" y="278" width="336" height="116" rx="8" fill="#12211d" stroke="#3c7a56"/>
           <rect x="12" y="278" width="10" height="116" rx="2" fill="#8ee8ca"/>
-          <text x="32" y="300" font-size="14" font-weight="700" fill="#8ee8ca">Merge gate</text>
-          <text x="32" y="322" font-size="14" fill="#cfe9df">A CI gate on the pull request.</text>
-          <text x="32" y="340" font-size="14" fill="#cfe9df">It fails closed.</text>
+          <text x="32" y="300" font-size="15" font-weight="700" fill="#8ee8ca">Merge gate</text>
+          <text x="32" y="322" font-size="15" fill="#cfe9df">A CI gate on the pull request.</text>
+          <text x="32" y="340" font-size="15" fill="#cfe9df">It fails closed.</text>
           <path d="M 32 362 L 50 362" stroke="#ff9b9b" stroke-width="2" marker-end="url(#dg2-leak)"/>
-          <text x="58" y="367" font-size="14" fill="#ff9b9b">Only by an admin unsetting</text>
-          <text x="58" y="385" font-size="14" fill="#ff9b9b">the required check</text>
+          <text x="58" y="367" font-size="15" fill="#ff9b9b">Only by an admin unsetting</text>
+          <text x="58" y="385" font-size="15" fill="#ff9b9b">the required check</text>
         </g>
       
         <!-- the caveat, in full -->
         <rect x="12" y="408" width="336" height="96" rx="8" fill="#2b1818" stroke="#7a4a4a"/>
-        <text x="24" y="430" font-size="14" font-weight="700" fill="#ff9b9b">A green-or-red check is not a gate.</text>
-        <text x="24" y="452" font-size="14" fill="#efe0c6">Until the check is marked required in</text>
-        <text x="24" y="470" font-size="14" fill="#efe0c6">branch protection, a red check can</text>
-        <text x="24" y="488" font-size="14" fill="#efe0c6">still be merged.</text>
+        <text x="24" y="430" font-size="15" font-weight="700" fill="#ff9b9b">A green-or-red check is not a gate.</text>
+        <text x="24" y="452" font-size="15" fill="#efe0c6">Until the check is marked required in</text>
+        <text x="24" y="470" font-size="15" fill="#efe0c6">branch protection, a red check can</text>
+        <text x="24" y="488" font-size="15" fill="#efe0c6">still be merged.</text>
       </svg>
       <figcaption>Each tier removes one escape route. None removes them all — the strongest still yields to a repository admin.</figcaption>
     </figure>
@@ -621,47 +652,47 @@ tiers:
           </marker>
         </defs>
       
-        <text x="180" y="18" text-anchor="middle" font-size="15" font-weight="700" fill="#e9eff5">An unbound approval outlives its change</text>
-        <text x="14" y="40" font-size="14" fill="#b3c2d2">If the acceptance records no base commit,</text>
-        <text x="14" y="58" font-size="14" fill="#b3c2d2">it keeps authorising later edits.</text>
+        <text x="180" y="18" text-anchor="middle" font-size="16" font-weight="700" fill="#e9eff5">An unbound approval outlives its change</text>
+        <text x="14" y="40" font-size="15" fill="#b3c2d2">If the acceptance records no base commit,</text>
+        <text x="14" y="58" font-size="15" fill="#b3c2d2">it keeps authorising later edits.</text>
       
         <!-- base branch -->
-        <text x="14" y="86" font-size="14" fill="#b3c2d2">base</text>
+        <text x="14" y="86" font-size="15" fill="#b3c2d2">base</text>
         <path d="M 82 108 L 118 108" stroke="#b3c2d2" stroke-width="1.6" marker-end="url(#dg3-a)"/>
         <path d="M 154 108 L 190 108" stroke="#b3c2d2" stroke-width="1.6" marker-end="url(#dg3-a)"/>
         <circle cx="68" cy="108" r="15" fill="#1c2430" stroke="#8ee8ca" stroke-width="2.4"/>
-        <text x="68" y="113" text-anchor="middle" font-size="14" font-weight="700" fill="#8ee8ca">A</text>
+        <text x="68" y="113" text-anchor="middle" font-size="15" font-weight="700" fill="#8ee8ca">A</text>
         <circle cx="136" cy="108" r="15" fill="#151b23" stroke="#303b4a"/>
-        <text x="136" y="113" text-anchor="middle" font-size="14" fill="#b3c2d2">B</text>
+        <text x="136" y="113" text-anchor="middle" font-size="15" fill="#b3c2d2">B</text>
         <circle cx="206" cy="108" r="15" fill="#151b23" stroke="#7a4a4a"/>
-        <text x="206" y="113" text-anchor="middle" font-size="14" fill="#b3c2d2">C</text>
-        <text x="230" y="113" font-size="14" fill="#ff9b9b">base tip</text>
+        <text x="206" y="113" text-anchor="middle" font-size="15" fill="#b3c2d2">C</text>
+        <text x="230" y="113" font-size="15" fill="#ff9b9b">base tip</text>
       
         <!-- branch -->
         <path d="M 68 126 L 68 152" stroke="#7fb3ff" stroke-width="1.6" marker-end="url(#dg3-a)"/>
-        <text x="14" y="184" font-size="14" fill="#7fb3ff">yours</text>
+        <text x="14" y="184" font-size="15" fill="#7fb3ff">yours</text>
         <path d="M 82 180 L 118 180" stroke="#7fb3ff" stroke-width="1.6" marker-end="url(#dg3-a)"/>
         <circle cx="68" cy="180" r="15" fill="#151b23" stroke="#7fb3ff"/>
-        <text x="68" y="185" text-anchor="middle" font-size="14" fill="#7fb3ff">X</text>
+        <text x="68" y="185" text-anchor="middle" font-size="15" fill="#7fb3ff">X</text>
         <circle cx="136" cy="180" r="15" fill="#151b23" stroke="#7a4a4a"/>
-        <text x="136" y="185" text-anchor="middle" font-size="14" fill="#7fb3ff">Y</text>
-        <text x="160" y="185" font-size="14" fill="#ff9b9b">branch tip</text>
+        <text x="136" y="185" text-anchor="middle" font-size="15" fill="#7fb3ff">Y</text>
+        <text x="160" y="185" font-size="15" fill="#ff9b9b">branch tip</text>
       
         <!-- verdicts, full sentences -->
         <rect x="12" y="210" width="336" height="62" rx="8" fill="#16281c" stroke="#3c7a56"/>
-        <text x="26" y="232" font-size="14" font-weight="700" fill="#8ce99a">A — the real merge base</text>
-        <text x="26" y="252" font-size="14" fill="#cfe9df">Record the base, and compare it with</text>
-        <text x="26" y="266" font-size="14" fill="#cfe9df">the pull request's real merge base.</text>
+        <text x="26" y="232" font-size="15" font-weight="700" fill="#8ce99a">A — the real merge base</text>
+        <text x="26" y="252" font-size="15" fill="#cfe9df">Record the base, and compare it with</text>
+        <text x="26" y="266" font-size="15" fill="#cfe9df">the pull request's real merge base.</text>
       
         <rect x="12" y="282" width="336" height="58" rx="8" fill="#2b1818" stroke="#7a4a4a"/>
-        <text x="26" y="304" font-size="14" font-weight="700" fill="#ff9b9b">C — the base tip</text>
-        <text x="26" y="324" font-size="14" fill="#efe0c6">Claims review of B and C, which</text>
-        <text x="26" y="338" font-size="14" fill="#efe0c6">nobody looked at.</text>
+        <text x="26" y="304" font-size="15" font-weight="700" fill="#ff9b9b">C — the base tip</text>
+        <text x="26" y="324" font-size="15" fill="#efe0c6">Claims review of B and C, which</text>
+        <text x="26" y="338" font-size="15" fill="#efe0c6">nobody looked at.</text>
       
         <rect x="12" y="350" width="336" height="58" rx="8" fill="#2b1818" stroke="#7a4a4a"/>
-        <text x="26" y="372" font-size="14" font-weight="700" fill="#ff9b9b">Y — the branch tip</text>
-        <text x="26" y="392" font-size="14" fill="#efe0c6">Moves with every push, so the</text>
-        <text x="26" y="406" font-size="14" fill="#efe0c6">approval certifies itself.</text>
+        <text x="26" y="372" font-size="15" font-weight="700" fill="#ff9b9b">Y — the branch tip</text>
+        <text x="26" y="392" font-size="15" fill="#efe0c6">Moves with every push, so the</text>
+        <text x="26" y="406" font-size="15" fill="#efe0c6">approval certifies itself.</text>
       </svg>
       <figcaption>The approval was granted against the fork point, so that is the commit <code>Accepted-for</code> must record.</figcaption>
     </figure>
@@ -765,8 +796,9 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
     <strong>36/80 (45%)</strong>, and roughly <strong>48%</strong> is the ceiling a standalone
     repository can reach on its own.</p>
 
-    <table>
-      <caption>Adoption positions, and what each requires</caption>
+    <div class="table-scroll" role="region" aria-label="Adoption positions table" tabindex="0">
+      <table>
+        <caption>Adoption positions, and what each requires</caption>
       <thead><tr><th scope="col">Adoption position</th><th scope="col">Status</th><th scope="col">What it requires</th></tr></thead>
       <tbody>
         <tr><th scope="row">Individual or small team, production use</th>
@@ -781,7 +813,8 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
           <td><strong>Not achieved</strong></td><td>All of the above, plus retention, longitudinal
           evidence and independent assurance.</td></tr>
       </tbody>
-    </table>
+      </table>
+    </div>
 
     <h3>Three controls no repository can grant itself</h3>
     <div class="grid g3" style="margin-top:14px">

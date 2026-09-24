@@ -151,11 +151,13 @@ class Page(HTMLParser):
         return re.sub(r"\s+", " ", "".join(self.text_parts))
 
 
-def figure_checks(html: str, fig_id: str, label: str, content_px: int) -> None:
-    """Verify one inline SVG figure.
+def figure_checks(
+    html: str, fig_id: str, label: str, compact_svg_px: float, wide_svg_px: float
+) -> None:
+    """Verify one inline SVG figure at both accepted layout extremes.
 
     Takes fig_id so a failure names WHICH figure — three copy-pasted blocks would drift as
-    the checks grow, and an unattributed "effective font too small" tells the reader nothing.
+    the checks grow, and an unattributed effective-font failure tells the reader nothing.
     """
     # Isolate this figure: from its <figure> wrapper to the matching close.
     m = re.search(
@@ -173,7 +175,7 @@ def figure_checks(html: str, fig_id: str, label: str, content_px: int) -> None:
         return
     root = svg.group(0)
 
-    # --- legibility, by the spec's formula rather than by eye --------------------
+    # --- legibility, using the actual compact and wide component content boxes ---
     vb = re.search(r'viewBox="\s*[\d.]+\s+[\d.]+\s+([\d.]+)\s+([\d.]+)\s*"', root)
     fonts = [float(f) for f in re.findall(r'font-size="([\d.]+)"', fig)]
     if not vb or not fonts:
@@ -181,12 +183,21 @@ def figure_checks(html: str, fig_id: str, label: str, content_px: int) -> None:
               "cannot compute legibility without both a viewBox width and a font-size")
     else:
         vb_w = float(vb.group(1))
-        eff = min(fonts) * content_px / vb_w
+        compact_eff = min(fonts) * compact_svg_px / vb_w
+        wide_eff = max(fonts) * wide_svg_px / vb_w
+        print(
+            f"  ({label}: compact min {compact_eff:.2f}px at {compact_svg_px:.0f}px SVG; "
+            f"wide max {wide_eff:.2f}px at {wide_svg_px:.0f}px SVG)"
+        )
         check(
-            f"{label}: effective font >= 12px at {content_px}px content",
-            eff >= 12.0,
-            f"min font {min(fonts)}px over viewBox width {vb_w} renders at {eff:.2f}px; "
-            f"either narrow the canvas or raise the type",
+            f"{label}: compact effective font >= 12px",
+            compact_eff >= 12.0,
+            f"min font {min(fonts)} over viewBox {vb_w} renders at {compact_eff:.2f}px",
+        )
+        check(
+            f"{label}: wide effective font <= 18px",
+            wide_eff <= 18.0,
+            f"max font {max(fonts)} over viewBox {vb_w} renders at {wide_eff:.2f}px",
         )
 
     # height="auto" is INVALID on <svg> (it expects a length) and threw a console error in
@@ -513,6 +524,132 @@ def privacy_checks() -> None:
               "a real developer-home marker remains in tracked history prose")
 
 
+def _css_number(html: str, name: str, unit: str) -> tuple[bool, float]:
+    match = re.search(rf"--{re.escape(name)}:\s*([\d.]+){re.escape(unit)}", html)
+    return (match is not None, float(match.group(1)) if match else 0.0)
+
+
+def responsive_checks(html: str, page: Page) -> tuple[float, float]:
+    """Check responsive contracts and return actual compact/wide SVG widths."""
+    expected = {
+        "page-gutter": (16.0, "px"),
+        "measure": (70.0, "ch"),
+        "touch-target": (44.0, "px"),
+        "figure-padding": (14.0, "px"),
+        "figure-max": (420.0, "px"),
+        "diagram-max": (360.0, "px"),
+    }
+    values: dict[str, float] = {}
+    for name, (wanted, unit) in expected.items():
+        found, value = _css_number(html, name, unit)
+        values[name] = value
+        check(
+            f"responsive token --{name} is {wanted:g}{unit}",
+            found and value == wanted,
+            f"found {value:g}{unit}" if found else "token missing",
+        )
+
+    check("wrap consumes the page gutter token",
+          ".wrap{max-width:1020px;margin:0 auto;padding:0 var(--page-gutter)}" in html)
+    check("medium layout raises the page gutter to 20px",
+          bool(re.search(r"@media\(min-width:48rem\).*?:root\{--page-gutter:20px\}", html, re.S)))
+    check("medium responsive breakpoint exists", "@media(min-width:48rem)" in html)
+    check("wide responsive breakpoint exists", "@media(min-width:64rem)" in html)
+    check("old 700px breakpoint is removed", "min-width:700px" not in html)
+    check("old 760px breakpoint is removed", "min-width:760px" not in html)
+    check("top-level prose consumes the readable measure",
+          bool(re.search(r"section>\.wrap>p[^}]*max-width:var\(--measure\)", html)))
+    check("hero spacing is fluid without resetting inline gutter",
+          bool(re.search(r"\.hero\{[^}]*padding-block:clamp\(", html)))
+    check("section spacing is fluid", bool(re.search(r"section\{[^}]*padding:clamp\(", html)))
+
+    check("compact navigation is a two-column grid",
+          bool(re.search(r"nav\.top\{[^}]*display:grid[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)", html)))
+    check("navigation links use the touch target",
+          bool(re.search(r"nav\.top a\{[^}]*min-height:var\(--touch-target\)", html)))
+    check("medium navigation restores flex",
+          bool(re.search(r"@media\(min-width:48rem\).*?nav\.top\{display:flex", html, re.S)))
+    check("compact tabs do not wrap",
+          bool(re.search(r"\.tabs\{[^}]*flex-wrap:nowrap", html)))
+    check("compact tabs scroll locally",
+          bool(re.search(r"\.tabs\{[^}]*overflow-x:auto", html)))
+    check("tab buttons use the touch target",
+          bool(re.search(r"\.tabs button\{[^}]*min-height:var\(--touch-target\)", html)))
+    check("medium tabs restore wrapping",
+          bool(re.search(r"@media\(min-width:48rem\).*?\.tabs\{[^}]*flex-wrap:wrap", html, re.S)))
+
+    regions = [
+        attrs for tag, attrs in page.tags
+        if tag == "div" and "table-scroll" in attrs.get("class", "").split()
+    ]
+    check("exactly two table overflow regions", len(regions) == 2, f"found {len(regions)}")
+    check("table regions are labeled and keyboard focusable",
+          len(regions) == 2 and all(
+              attrs.get("role") == "region"
+              and attrs.get("tabindex") == "0"
+              and bool(attrs.get("aria-label"))
+              for attrs in regions
+          ))
+    check("each table is directly wrapped by its region",
+          len(re.findall(r'<div class="table-scroll"[^>]*>\s*<table>', html)) == 2
+          and len(re.findall(r'</table>\s*</div>', html)) == 2)
+    check("table regions scroll locally",
+          bool(re.search(r"\.table-scroll\{[^}]*overflow-x:auto", html)))
+    check("compact tables retain a readable minimum width",
+          bool(re.search(r"\.table-scroll table\{[^}]*min-width:", html)))
+    check("code blocks keep bounded local overflow",
+          bool(re.search(r"pre\{[^}]*max-width:100%[^}]*overflow:auto", html)))
+
+    check("figure cards are centered and capped",
+          bool(re.search(r"figure\.dg\{[^}]*max-width:var\(--figure-max\)[^}]*margin:", html)))
+    check("SVGs are centered and capped",
+          bool(re.search(r"figure\.dg svg\{[^}]*max-width:var\(--diagram-max\)[^}]*margin:", html)))
+    check("reduced motion disables smooth scrolling",
+          "@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}" in html)
+    check("print forces every hidden panel visible",
+          bool(re.search(r"@media print\{.*?\.panel\[hidden\]\{display:block!important\}", html, re.S)))
+
+    sniffers = ("navigator.userAgent", "navigator.platform", "maxTouchPoints", "screen.width")
+    found_sniffers = [token for token in sniffers if token in html]
+    check("layout uses no device or user-agent sniffing", not found_sniffers,
+          f"found {found_sniffers}")
+
+    # Fallbacks expose today's real box model in the red state instead of replacing one guessed
+    # divisor with another. The accepted tokens take over once the responsive CSS exists.
+    old_wrap = re.search(r"\.wrap\{[^}]*padding:\s*0\s+(\d+)px", html)
+    old_border = re.search(r"figure\.dg\{[^}]*border:(\d+)px", html)
+    old_padding = re.search(r"figure\.dg\{[^}]*padding:(\d+)px", html)
+    gutter = values["page-gutter"] if values["page-gutter"] else (
+        float(old_wrap.group(1)) if old_wrap else 0.0
+    )
+    border = float(old_border.group(1)) if old_border else 0.0
+    figure_padding = values["figure-padding"] if values["figure-padding"] else (
+        float(old_padding.group(1)) if old_padding else 0.0
+    )
+    compact_inner = 360.0 - 2 * gutter - 2 * figure_padding - 2 * border
+    compact_svg = min(
+        compact_inner,
+        values["diagram-max"] if values["diagram-max"] else compact_inner,
+    )
+    wide_figure = values["figure-max"] if values["figure-max"] else 980.0
+    wide_inner = wide_figure - 2 * figure_padding - 2 * border
+    wide_svg = min(
+        wide_inner,
+        values["diagram-max"] if values["diagram-max"] else wide_inner,
+    )
+    check("compact SVG content box is positive", compact_svg > 0, f"width={compact_svg}")
+    check("wide SVG content box is positive", wide_svg > 0, f"width={wide_svg}")
+    check("compact SVG content box is exactly 298px",
+          compact_svg == 298.0, f"width={compact_svg}")
+    check("wide SVG content box is exactly 360px",
+          wide_svg == 360.0, f"width={wide_svg}")
+    print(
+        f"  (responsive boxes: compact SVG {compact_svg:.0f}px; "
+        f"wide SVG {wide_svg:.0f}px)"
+    )
+    return compact_svg, wide_svg
+
+
 def main() -> int:
     print("portal verification")
 
@@ -598,24 +735,16 @@ def main() -> int:
     for phrase in FORBIDDEN:
         check(f"avoids overclaim {phrase!r}", phrase not in low)
 
-    print(" figures")
-    # The divisor is the CONTENT width, not the viewport. .wrap has horizontal padding, so
-    # a 360px viewport gives less than 360px to the figure, and measuring against the
-    # viewport is what made a draft look like it passed at 12.0px when it renders at 10.7px.
-    # Read the padding out of the stylesheet rather than hard-coding it, so a future CSS
-    # change fails this check instead of silently invalidating every figure.
-    pad = re.search(r"\.wrap\{[^}]*padding:\s*0\s+(\d+)px", raw)
-    check("the .wrap padding is readable from the stylesheet", pad is not None,
-          "without it the legibility divisor would be a guess")
-    content_px = 360 - 2 * int(pad.group(1)) if pad else 360
-    print(f"  (mobile content width = 360 - 2x{pad.group(1) if pad else '?'} = {content_px}px)")
+    print(" responsive")
+    compact_svg_px, wide_svg_px = responsive_checks(raw, p)
 
+    print(" figures")
     for fig_id, label in (
         ("dg1", "loop"),
         ("dg2", "enforcement"),
         ("dg3", "unbound approval"),
     ):
-        figure_checks(raw, fig_id, label, content_px)
+        figure_checks(raw, fig_id, label, compact_svg_px, wide_svg_px)
 
     # Truthfulness: the enforcement figure simplifies a ladder, and simplification is where
     # overclaiming hides. The strongest tier is still bypassable by a repository admin, and
