@@ -2,9 +2,9 @@
 
 - **Slug:** mentor-self-paced-modes
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-09-24
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/14
 
 ## Problem
@@ -112,7 +112,7 @@ enhancements are explained honestly.
 16. After merge, an artifact-only pull request marks this chain shipped before Playbook coverage PR 3
     begins.
 
-## Recommended decisions awaiting owner acceptance
+## Resolved questions
 
 1. **First-visit route:** default to Self-paced with both mode choices always visible; restore the
    last selected mode only when the minimal saved record is valid.
