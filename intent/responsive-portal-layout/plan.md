@@ -4,7 +4,7 @@
 - **Author:** Kiro (AI agent)
 - **Accepted-by:** Tim WU
 - **Accepted-for:** fbbf85ed592fb186ba7cf015ed9e65811a028853
-- **Status:** accepted
+- **Status:** shipped
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time. It binds review to protected
 `main` after the privacy closeout, not to this branch's artifact commits.
