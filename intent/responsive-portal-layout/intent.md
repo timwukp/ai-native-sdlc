@@ -4,7 +4,7 @@
 - **Author:** Kiro (AI agent)
 - **Accepted-by:** Tim WU
 - **Date:** 2026-09-23
-- **Status:** accepted
+- **Status:** shipped
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/10
 
 ## Problem
