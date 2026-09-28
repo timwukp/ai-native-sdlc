@@ -36,10 +36,9 @@ PAGE = HERE / "index.html"
 FAILURES: list[str] = []
 CHECKS = 0
 
-# Spec requirement 7. The page was 44,972 bytes before the figures; three inline SVGs at
-# roughly 4-5 KB each land near 58 KB. The ceiling is deliberately close: a fourth figure
-# would not fit, which is one of the reasons the spec ships three.
-PAGE_BUDGET = 75_000
+# The learning-mode spec raises the measured responsive page's 75 KB ceiling to 85 KB.
+# This remains a hard cap: it authorises the accepted mode UI, not unrelated expansion.
+PAGE_BUDGET = 85_000
 
 # Text that must appear somewhere in the rendered text. Semantic markers, not whole sentences,
 # so editorial improvement is not blocked while a missing claim still fails.
@@ -650,6 +649,186 @@ def responsive_checks(html: str, page: Page) -> tuple[float, float]:
     return compact_svg, wide_svg
 
 
+LEARNING_STAGES = ("plan", "design", "build", "test", "deploy", "maintain")
+
+
+def learning_mode_checks(html: str, page: Page) -> None:
+    """Verify the signed-off two-mode projection without requiring implementation to exist."""
+    tags = page.tags
+    tabs = [a for _, a in tags if a.get("role") == "tab"]
+    panels = [a for _, a in tags if a.get("role") == "tabpanel"]
+    tablists = [a for _, a in tags if a.get("role") == "tablist"]
+
+    tab_stages = [a.get("data-stage", "") for a in tabs]
+    panel_stages = [a.get("data-stage", "") for a in panels]
+    check("learning modes: one lifecycle tablist", len(tablists) == 1,
+          f"found {len(tablists)}")
+    check("learning modes: six canonical tabs remain", len(tabs) == 6,
+          f"found {len(tabs)}")
+    check("learning modes: six canonical panels remain", len(panels) == 6,
+          f"found {len(panels)}")
+    check("learning modes: tabs use the six semantic stage ids",
+          tuple(tab_stages) == LEARNING_STAGES, f"found {tab_stages}")
+    check("learning modes: panels use the six semantic stage ids",
+          tuple(panel_stages) == LEARNING_STAGES, f"found {panel_stages}")
+    check("learning modes: canonical panel ids stay unique",
+          len({a.get("id", "") for a in panels}) == 6)
+
+    groups = [a for _, a in tags if "data-learning-mode-group" in a]
+    choices = [a for tag, a in tags
+               if tag == "button" and "data-learning-mode-choice" in a]
+    choice_values = [a.get("data-learning-mode-choice", "") for a in choices]
+    check("learning modes: one labeled mode group", len(groups) == 1 and
+          bool(groups[0].get("aria-label") or groups[0].get("aria-labelledby")) if groups else False,
+          f"found {len(groups)}")
+    check("learning modes: exactly Mentor and Self-paced choices",
+          len(choices) == 2 and set(choice_values) == {"mentor", "self-paced"},
+          f"found {choice_values}")
+    check("learning modes: choices expose pressed state",
+          len(choices) == 2 and all(a.get("aria-pressed") in {"true", "false"} for a in choices))
+    self_paced = [a for a in choices if a.get("data-learning-mode-choice") == "self-paced"]
+    check("learning modes: Self-paced is the markup default",
+          len(self_paced) == 1 and self_paced[0].get("aria-pressed") == "true")
+
+    guides = [a for _, a in tags if "data-mentor-guide" in a]
+    guide_stages = [a.get("data-stage", "") for a in guides]
+    durations = []
+    for guide in guides:
+        try:
+            durations.append(int(guide.get("data-duration", "")))
+        except ValueError:
+            durations.append(0)
+    mentor_parts = [a.get("data-mentor-part", "") for _, a in tags
+                    if "data-mentor-part" in a]
+    check("learning modes: six uniquely staged Mentor guides",
+          len(guides) == 6 and tuple(guide_stages) == LEARNING_STAGES,
+          f"found {guide_stages}")
+    check("learning modes: Mentor duration totals 45 to 60 minutes",
+          len(durations) == 6 and 45 <= sum(durations) <= 60,
+          f"durations={durations} total={sum(durations)}")
+    for part in ("objective", "ask", "demonstrate"):
+        check(f"learning modes: each Mentor guide has {part}",
+              mentor_parts.count(part) == 6, f"found {mentor_parts.count(part)}")
+
+    mentor_controls = [a for _, a in tags if "data-mentor-controls" in a]
+    mentor_prev = [a for _, a in tags if "data-mentor-previous" in a]
+    mentor_next = [a for _, a in tags if "data-mentor-next" in a]
+    mentor_position = [a for _, a in tags if "data-mentor-position" in a]
+    check("learning modes: one shared Mentor control bar",
+          len(mentor_controls) == len(mentor_prev) == len(mentor_next) ==
+          len(mentor_position) == 1)
+
+    recaps = [a for _, a in tags if "data-self-paced-recap" in a]
+    recap_stages = [a.get("data-stage", "") for a in recaps]
+    mounts = [a for _, a in tags if "data-question-stage" in a]
+    mount_stages = [a.get("data-question-stage", "") for a in mounts]
+    check("learning modes: six uniquely staged Self-paced recaps",
+          len(recaps) == 6 and tuple(recap_stages) == LEARNING_STAGES,
+          f"found {recap_stages}")
+    check("learning modes: six unique stage question mounts",
+          len(mounts) == 6 and tuple(mount_stages) == LEARNING_STAGES,
+          f"found {mount_stages}")
+
+    progress_regions = [a for _, a in tags if "data-learning-progress" in a]
+    progress_values = [a for tag, a in tags if tag == "progress" and a.get("max") == "6"]
+    continues = [a for _, a in tags if "data-learning-continue" in a]
+    completes = [a for _, a in tags if "data-mark-complete" in a]
+    resets = [a for _, a in tags if "data-learning-reset" in a]
+    live = [a for _, a in tags if "data-learning-live" in a and a.get("aria-live") == "polite"]
+    check("learning modes: one shared Self-paced progress region",
+          len(progress_regions) == 1)
+    check("learning modes: progress exposes an accessible six-stage value",
+          len(progress_values) == 1 and bool(progress_values[0].get("aria-label") or
+                                             progress_values[0].get("aria-labelledby")))
+    check("learning modes: Continue, Mark Complete and Reset exist once",
+          len(continues) == len(completes) == len(resets) == 1)
+    check("learning modes: one polite shared live region", len(live) == 1)
+
+    dialogs = [a for tag, a in tags if tag == "dialog" and "data-reset-dialog" in a]
+    cancels = [a for _, a in tags if "data-reset-cancel" in a]
+    confirms = [a for _, a in tags if "data-reset-confirm" in a]
+    check("learning modes: one accessible reset dialog",
+          len(dialogs) == 1 and bool(dialogs[0].get("aria-label") or
+                                     dialogs[0].get("aria-labelledby")))
+    check("learning modes: reset dialog has one Cancel and one Reset action",
+          len(cancels) == len(confirms) == 1)
+    check("learning modes: browser-native dialogs are absent",
+          not re.search(r"\b(?:window\.)?(?:confirm|alert|prompt)\s*\(", html))
+
+    additions = [a for _, a in tags if any(k in a for k in (
+        "data-learning-mode-group", "data-mentor-guide", "data-self-paced-recap",
+        "data-question-stage", "data-mentor-controls", "data-learning-progress",
+        "data-reset-dialog",
+    ))]
+    check("learning modes: every learning node is marked as an addition",
+          bool(additions) and all("data-learning-addition" in a for a in additions))
+
+    question_block = re.search(r"var\s+QUESTIONS\s*=\s*\[(.*?)\];", html, re.S)
+    question_source = question_block.group(1) if question_block else ""
+    question_stages = re.findall(r"\bstage\s*:\s*['\"]([^'\"]+)['\"]", question_source)
+    check("learning modes: one six-entry staged question source",
+          bool(question_block) and tuple(question_stages) == LEARNING_STAGES,
+          f"found {question_stages}")
+    check("learning modes: questions render into stage mounts",
+          "data-question-stage" in html and "item.stage" in html)
+
+    check("learning modes: exact storage namespace",
+          "ai-native-sdlc.learning.v1" in html)
+    fields_match = re.search(r"LEARNING_STORAGE_FIELDS\s*=\s*\[([^\]]*)\]", html, re.S)
+    fields = re.findall(r"['\"]([A-Za-z]+)['\"]",
+                        fields_match.group(1) if fields_match else "")
+    expected_fields = ["version", "mode", "currentStage", "completedStages"]
+    check("learning modes: storage schema has exactly four approved fields",
+          fields == expected_fields, f"found {fields}")
+    check("learning modes: schema version is one",
+          bool(re.search(r"LEARNING_SCHEMA_VERSION\s*=\s*1\b", html)))
+    for function in (
+        "defaultLearningState", "validateLearningState", "loadLearningState",
+        "saveLearningState", "clearLearningState", "setLearningMode",
+        "markStageComplete", "openResetDialog", "closeResetDialog",
+        "confirmLearningReset",
+    ):
+        check(f"learning modes: {function} is implemented",
+              bool(re.search(rf"function\s+{function}\s*\(", html)))
+    check("learning modes: invalid records reject unknown fields",
+          "LEARNING_STORAGE_FIELDS.indexOf(key)" in html and "Object.keys(record)" in html)
+    check("learning modes: storage operations are guarded",
+          html.count("localStorage.getItem") == 1 and
+          html.count("localStorage.setItem") == 1 and
+          html.count("localStorage.removeItem") == 1 and
+          html.count("try{") >= 3)
+    check("learning modes: session-only fallback is visible",
+          "session-only" in page.text.casefold())
+    check("learning modes: completion is explicitly button-bound",
+          "addEventListener('click', markStageComplete)" in html or
+          'addEventListener("click", markStageComplete)' in html)
+    check("learning modes: reset confirm is the only clear-state action",
+          "addEventListener('click', confirmLearningReset)" in html or
+          'addEventListener("click", confirmLearningReset)' in html)
+
+    prohibited_fields = {"answer", "correctness", "score", "timestamp", "duration",
+                         "identity", "analytics"}
+    check("learning modes: persisted fields exclude answer and telemetry data",
+          bool(fields_match) and not (set(fields) & prohibited_fields))
+    check("learning modes: enhancement applies a learning-mode attribute",
+          "data-learning-mode" in html and "setAttribute('data-learning-mode'" in html)
+    check("learning modes: guidance remains visible before enhancement",
+          "[data-mode-content]{display:none" not in html)
+    check("learning modes: accurate no-JavaScript guidance is present",
+          page.has_noscript and "mentor" in page.text.casefold() and
+          "self-paced" in page.text.casefold())
+    check("learning modes: print exposes both guidance projections",
+          bool(re.search(r"@media print\{.*?data-mode-content.*?display:block", html, re.S)))
+    check("learning modes: print hides mode and progress mutation controls",
+          bool(re.search(r"@media print\{.*?data-learning-controls.*?display:none", html, re.S)))
+
+    print(
+        f"  (learning modes: {len(guides)} Mentor guides, {len(recaps)} recaps, "
+        f"{len(mounts)} question mounts, {len(fields)} persisted fields, "
+        f"{sum(durations)} Mentor minutes)"
+    )
+
+
 def main() -> int:
     print("portal verification")
 
@@ -737,6 +916,9 @@ def main() -> int:
 
     print(" responsive")
     compact_svg_px, wide_svg_px = responsive_checks(raw, p)
+
+    print(" learning modes")
+    learning_mode_checks(raw, p)
 
     print(" figures")
     for fig_id, label in (
