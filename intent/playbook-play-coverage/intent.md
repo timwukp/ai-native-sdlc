@@ -2,9 +2,9 @@
 
 - **Slug:** playbook-play-coverage
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-09-29
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/17
 
 ## Problem
@@ -112,7 +112,9 @@ catalogue's out-of-scope entries, so the two cannot disagree.
     keyboard traversal, no-JavaScript, print and console.
 12. After merge, an artifact-only PR marks this chain shipped before PR 4 begins.
 
-## Recommended decisions awaiting owner acceptance
+## Resolved questions
+
+The owner accepted all seven recommendations below on 2026-09-29.
 
 1. **Delivery surface:** add a separate static `plays.html` catalogue with its own byte budget
    (measured and fixed in the spec). `index.html` gains only per-stage links and a nav entry, and
