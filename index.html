@@ -115,6 +115,55 @@
 
   .note{border-left:3px solid var(--warn);background:#1e1a13;padding:12px 15px;border-radius:0 8px 8px 0;margin:16px 0;font-size:.93rem;color:#efe0c6}
   .note b{color:var(--warn)}
+
+  /* ---- learning modes ---------------------------------------------------------
+     Two projections over the one canonical curriculum. Both guidance kinds ship
+     visible; only a JS-applied [data-learning-mode] on <html> hides the other. */
+  .lmodes{margin:22px 0 0;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .lmodes h2{font-size:1.2rem;margin:0 0 .3em}
+  .lmodes p{margin:0 0 12px;color:var(--dim);font-size:.93rem;max-width:70ch}
+  .lmode-choices{display:grid;grid-template-columns:1fr;gap:8px}
+  .lmode-choices button{min-height:var(--touch-target);text-align:left;background:var(--bg3);border:1px solid var(--line);color:var(--fg);padding:11px 14px;border-radius:8px;font:600 .93rem var(--sans);cursor:pointer}
+  .lmode-choices button:hover{border-color:var(--acc)}
+  .lmode-choices button[aria-pressed="true"]{border-color:var(--acc2);background:#12211d;box-shadow:inset 0 0 0 1px var(--acc2)}
+  .lmode-choices button b{display:block;font-size:.95rem}
+  .lmode-choices button span{display:block;font-weight:400;color:var(--dim);font-size:.86rem;margin-top:2px}
+  .lmode-choices button[aria-pressed="true"]::after{content:" ✓ selected";color:var(--acc2);font-size:.8rem;font-weight:600}
+  .live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .lguide{margin:16px 0 0;border-radius:10px;padding:13px 15px;font-size:.92rem}
+  .lguide h4{margin:0 0 .35em;font-size:.95rem}
+  .lguide dl{margin:0;display:grid;grid-template-columns:1fr;gap:6px}
+  .lguide dt{font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim2);margin-top:6px}
+  .lguide dd{margin:0;color:var(--dim)}
+  .mentor-guide{border-left:3px solid var(--acc);background:#111823}
+  .mentor-guide .dur{font-family:var(--mono);color:var(--acc2);font-size:.86rem}
+  .sp-recap{border-left:3px solid var(--acc2);background:#12211d}
+  .sp-recap p{margin:.3em 0 0;color:var(--dim)}
+  .qmount{margin:12px 0 0}
+
+  .lbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0 0;padding:14px 16px;background:var(--bg2);border:1px solid var(--line);border-radius:12px}
+  .lbar button{min-height:var(--touch-target);background:var(--bg3);border:1px solid var(--line);color:var(--fg);padding:9px 15px;border-radius:8px;font:600 .9rem var(--sans);cursor:pointer}
+  .lbar button:hover:not(:disabled){border-color:var(--acc)}
+  .lbar button:disabled{opacity:.45;cursor:not-allowed}
+  .lbar .pos{font-family:var(--mono);color:var(--dim2);font-size:.9rem}
+  .lbar progress{flex:1 1 140px;min-width:120px;height:14px}
+  .lbar .prog-text{font-family:var(--mono);color:var(--dim2);font-size:.88rem}
+  .btn-good{border-color:var(--acc2)!important;color:var(--acc2)!important}
+  .btn-warn{border-color:var(--bad)!important;color:var(--bad)!important}
+
+  dialog.reset-dialog{background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:20px;max-width:400px;width:calc(100% - 32px)}
+  dialog.reset-dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog.reset-dialog h2{font-size:1.15rem;margin:0 0 .4em}
+  dialog.reset-dialog p{color:var(--dim);font-size:.93rem;margin:0 0 14px}
+  dialog.reset-dialog .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  dialog.reset-dialog button{min-height:var(--touch-target);padding:9px 16px;border-radius:8px;font:600 .9rem var(--sans);cursor:pointer;background:var(--bg3);border:1px solid var(--line);color:var(--fg)}
+  dialog.reset-dialog button.danger{border-color:var(--bad);color:var(--bad)}
+  dialog.reset-dialog:not([open]){display:none}
+
+  /* progressive enhancement: only hide the non-selected projection once JS applies the attribute */
+  html[data-learning-mode="mentor"] [data-mode-content="self-paced"]{display:none}
+  html[data-learning-mode="self-paced"] [data-mode-content="mentor"]{display:none}
   footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--dim2);font-size:.88rem}
   footer a{color:var(--dim)}
   footer p{max-width:76ch}
@@ -136,6 +185,9 @@
     body{background:#fff;color:#111;font-size:11pt}
     header.site{background:none;border-color:#bbb}
     nav.top,.cta,.tabs,.opts button{display:none}
+    .lmode-choices,.lbar,[data-learning-controls]{display:none!important}
+    dialog.reset-dialog{display:none!important}
+    html[data-learning-mode] [data-mode-content]{display:block!important}
     section{padding:24px 0;border-color:#bbb;break-inside:avoid}
     .panel[hidden]{display:block!important}
     .panel,.card,.vs>div,.node,details,.q,.note,pre,code,kbd{background:#fff;color:#111;border-color:#bbb}
@@ -343,16 +395,46 @@
     <p class="lede">Each stage shows the shift from traditional practice, the artifact it commits,
     the gate and who holds it, and how it is measured.</p>
 
-    <div class="tabs" role="tablist" aria-label="Lifecycle stages">
-      <button type="button" role="tab" id="t1" aria-controls="p1" aria-selected="true">1 · Plan</button>
-      <button type="button" role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1">2 · Design</button>
-      <button type="button" role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1">3 · Build</button>
-      <button type="button" role="tab" id="t4" aria-controls="p4" aria-selected="false" tabindex="-1">4 · Test</button>
-      <button type="button" role="tab" id="t5" aria-controls="p5" aria-selected="false" tabindex="-1">5 · Deploy</button>
-      <button type="button" role="tab" id="t6" aria-controls="p6" aria-selected="false" tabindex="-1">6 · Maintain</button>
+    <div class="lmodes" data-learning-addition data-learning-mode-group aria-labelledby="lmode-h">
+      <h2 id="lmode-h">Choose how you work through this</h2>
+      <p>Both routes read the same six canonical stages below — they add guidance, they do not
+      replace the material. Without JavaScript both sets of guidance stay visible.</p>
+      <div class="lmode-choices" role="group" aria-labelledby="lmode-h">
+        <button type="button" data-learning-addition data-learning-mode-choice="self-paced" aria-pressed="true">
+          <b>Self-paced</b><span>Track stages locally with one check each. Nothing leaves your browser.</span>
+        </button>
+        <button type="button" data-learning-addition data-learning-mode-choice="mentor" aria-pressed="false">
+          <b>Mentor</b><span>A 45–60 minute route with an objective, prompt and failure demo per stage.</span>
+        </button>
+      </div>
+      <p class="live" data-learning-addition data-learning-live aria-live="polite" role="status"></p>
     </div>
 
-    <div class="panel" role="tabpanel" id="p1" aria-labelledby="t1" tabindex="0">
+    <div class="lbar" data-learning-addition data-learning-controls data-mentor-controls data-mode-content="mentor" aria-label="Mentor stage navigation">
+      <button type="button" data-learning-addition data-mentor-previous>← Previous</button>
+      <span class="pos" data-learning-addition data-mentor-position>Stage 1 of 6</span>
+      <button type="button" data-learning-addition data-mentor-next>Next →</button>
+    </div>
+
+    <div class="lbar" data-learning-addition data-learning-controls data-learning-progress data-mode-content="self-paced" aria-label="Self-paced progress">
+      <button type="button" data-learning-addition data-learning-continue>Start</button>
+      <progress data-learning-addition value="0" max="6" aria-label="Stages completed out of six"></progress>
+      <span class="prog-text" data-learning-addition data-progress-text>0 of 6 stages complete</span>
+      <button type="button" data-learning-addition data-mark-complete class="btn-good">Mark Stage Complete</button>
+      <button type="button" data-learning-addition data-learning-reset class="btn-warn">Reset Progress</button>
+    </div>
+    <p class="lede" data-learning-addition data-mode-content="self-paced" style="font-size:.86rem;margin:6px 0 0;color:var(--dim)">Progress stays in this browser. If storage is blocked, this visit uses session-only progress and nothing is saved.</p>
+
+    <div class="tabs" role="tablist" aria-label="Lifecycle stages">
+      <button type="button" role="tab" id="t1" data-stage="plan" aria-controls="p1" aria-selected="true">1 · Plan</button>
+      <button type="button" role="tab" id="t2" data-stage="design" aria-controls="p2" aria-selected="false" tabindex="-1">2 · Design</button>
+      <button type="button" role="tab" id="t3" data-stage="build" aria-controls="p3" aria-selected="false" tabindex="-1">3 · Build</button>
+      <button type="button" role="tab" id="t4" data-stage="test" aria-controls="p4" aria-selected="false" tabindex="-1">4 · Test</button>
+      <button type="button" role="tab" id="t5" data-stage="deploy" aria-controls="p5" aria-selected="false" tabindex="-1">5 · Deploy</button>
+      <button type="button" role="tab" id="t6" data-stage="maintain" aria-controls="p6" aria-selected="false" tabindex="-1">6 · Maintain</button>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p1" data-stage="plan" aria-labelledby="t1" tabindex="0">
       <h3>Stage 1 — Plan</h3>
       <p class="lede" style="font-size:1rem">Ideas stop waiting for someone to write them up.
       Intent is captured once, in the originator's own words, as a version-controlled artifact the
@@ -379,9 +461,25 @@
       <div class="note"><b>Trap.</b> Open questions must be closed or explicitly deferred before
       Design. An unanswered question does not disappear; it resurfaces as rework after build
       starts.</div>
+      <div class="lguide mentor-guide" data-learning-addition data-mentor-guide data-stage="plan" data-duration="8" data-mode-content="mentor">
+        <h4>Mentor guide · Plan <span class="dur">≈ 8 min</span></h4>
+        <dl>
+          <dt data-learning-addition data-mentor-part="objective">Objective</dt>
+          <dd>Explain why the originator commits intent once.</dd>
+          <dt data-learning-addition data-mentor-part="ask">Ask the room</dt>
+          <dd>Where does meaning get lost between idea and engineering ticket?</dd>
+          <dt data-learning-addition data-mentor-part="demonstrate">Demonstrate</dt>
+          <dd>Show why self-accepting <code>intent.md</code> is no gate.</dd>
+        </dl>
+      </div>
+      <div class="lguide sp-recap" data-learning-addition data-self-paced-recap data-stage="plan" data-mode-content="self-paced">
+        <h4>Recap</h4>
+        <p>Plan commits <code>intent.md</code>; a different product owner accepts it.</p>
+        <div class="qmount" data-learning-addition data-question-stage="plan"></div>
+      </div>
     </div>
 
-    <div class="panel" role="tabpanel" id="p2" aria-labelledby="t2" tabindex="0">
+    <div class="panel" role="tabpanel" id="p2" data-stage="design" aria-labelledby="t2" tabindex="0">
       <h3>Stage 2 — Design</h3>
       <p class="lede" style="font-size:1rem">Requirements and design collapse into one session.
       Policy is applied while the spec is written, not discovered in a review weeks later.</p>
@@ -406,9 +504,25 @@
           Lagging: spec commits dated after the first plan commit, which is requirements
           rework.</li>
       </ul>
+      <div class="lguide mentor-guide" data-learning-addition data-mentor-guide data-stage="design" data-duration="8" data-mode-content="mentor">
+        <h4>Mentor guide · Design <span class="dur">≈ 8 min</span></h4>
+        <dl>
+          <dt data-learning-addition data-mentor-part="objective">Objective</dt>
+          <dd>Explain why policy owners resolve concerns before engineering.</dd>
+          <dt data-learning-addition data-mentor-part="ask">Ask the room</dt>
+          <dd>Which recent concern belonged in design, not review?</dd>
+          <dt data-learning-addition data-mentor-part="demonstrate">Demonstrate</dt>
+          <dd>Walk a <code>spec.md</code> whose concerns name owners and resolutions.</dd>
+        </dl>
+      </div>
+      <div class="lguide sp-recap" data-learning-addition data-self-paced-recap data-stage="design" data-mode-content="self-paced">
+        <h4>Recap</h4>
+        <p>Design commits owner-signed <code>spec.md</code>, resolving concerns before build.</p>
+        <div class="qmount" data-learning-addition data-question-stage="design"></div>
+      </div>
     </div>
 
-    <div class="panel" role="tabpanel" id="p3" aria-labelledby="t3" tabindex="0">
+    <div class="panel" role="tabpanel" id="p3" data-stage="build" aria-labelledby="t3" tabindex="0">
       <h3>Stage 3 — Build</h3>
       <p class="lede" style="font-size:1rem">Nothing is implemented without an accepted plan.
       Institutional knowledge becomes files the agent reads, and guardrails run as code rather
@@ -439,9 +553,25 @@
       </ul>
       <div class="note"><b>Why coverage matters.</b> Without it a single historical acceptance
       launders every later change to any file that plan happened to name.</div>
+      <div class="lguide mentor-guide" data-learning-addition data-mentor-guide data-stage="build" data-duration="9" data-mode-content="mentor">
+        <h4>Mentor guide · Build <span class="dur">≈ 9 min</span></h4>
+        <dl>
+          <dt data-learning-addition data-mentor-part="objective">Objective</dt>
+          <dd>Explain pre-edit acceptance and merge-base binding.</dd>
+          <dt data-learning-addition data-mentor-part="ask">Ask the room</dt>
+          <dd>What can branch-tip binding let a later push bypass?</dd>
+          <dt data-learning-addition data-mentor-part="demonstrate">Demonstrate</dt>
+          <dd>Run the gate on an unnamed file and read its refusal.</dd>
+        </dl>
+      </div>
+      <div class="lguide sp-recap" data-learning-addition data-self-paced-recap data-stage="build" data-mode-content="self-paced">
+        <h4>Recap</h4>
+        <p>Build accepts <code>plan.md</code> before edits, binds it to the merge base and names every touched file.</p>
+        <div class="qmount" data-learning-addition data-question-stage="build"></div>
+      </div>
     </div>
 
-    <div class="panel" role="tabpanel" id="p4" aria-labelledby="t4" tabindex="0">
+    <div class="panel" role="tabpanel" id="p4" data-stage="test" aria-labelledby="t4" tabindex="0">
       <h3>Stage 4 — Test</h3>
       <p class="lede" style="font-size:1rem">Every session checks its own work before a human sees
       it, and the configuration that steers the agent gets regression-tested like the code it
@@ -474,9 +604,25 @@
       appears in the HTML passes while that element sits behind <code>display:none</code> —
       invisible and unreachable. A green gate means "the declared checks passed", never "the change
       is correct".</div>
+      <div class="lguide mentor-guide" data-learning-addition data-mentor-guide data-stage="test" data-duration="9" data-mode-content="mentor">
+        <h4>Mentor guide · Test <span class="dur">≈ 9 min</span></h4>
+        <dl>
+          <dt data-learning-addition data-mentor-part="objective">Objective</dt>
+          <dd>Explain red-first evidence and the weak-eval hole.</dd>
+          <dt data-learning-addition data-mentor-part="ask">Ask the room</dt>
+          <dd>How do you prove a check can fail?</dd>
+          <dt data-learning-addition data-mentor-part="demonstrate">Demonstrate</dt>
+          <dd>Hide an eval-checked id with <code>display:none</code>; watch it pass.</dd>
+        </dl>
+      </div>
+      <div class="lguide sp-recap" data-learning-addition data-self-paced-recap data-stage="test" data-mode-content="self-paced">
+        <h4>Recap</h4>
+        <p>Test commits a red-first target and <code>evals/</code>; green proves only declared checks.</p>
+        <div class="qmount" data-learning-addition data-question-stage="test"></div>
+      </div>
     </div>
 
-    <div class="panel" role="tabpanel" id="p5" aria-labelledby="t5" tabindex="0">
+    <div class="panel" role="tabpanel" id="p5" data-stage="deploy" aria-labelledby="t5" tabindex="0">
       <h3>Stage 5 — Deploy</h3>
       <p class="lede" style="font-size:1rem">Review runs in both directions, and governance is
       enforced as the agent acts. The agent may do everything up to the production gate and nothing
@@ -505,9 +651,25 @@
           a human touching the branch. Lagging: defects caught before merge versus those escaping
           to production.</li>
       </ul>
+      <div class="lguide mentor-guide" data-learning-addition data-mentor-guide data-stage="deploy" data-duration="8" data-mode-content="mentor">
+        <h4>Mentor guide · Deploy <span class="dur">≈ 8 min</span></h4>
+        <dl>
+          <dt data-learning-addition data-mentor-part="objective">Objective</dt>
+          <dd>Explain separation of duties and closing chains as shipped.</dd>
+          <dt data-learning-addition data-mentor-part="ask">Ask the room</dt>
+          <dd>What stays authorised when a merged chain remains <code>accepted</code>?</dd>
+          <dt data-learning-addition data-mentor-part="demonstrate">Demonstrate</dt>
+          <dd>Show branch protection treating required <code>skipped</code> as green.</dd>
+        </dl>
+      </div>
+      <div class="lguide sp-recap" data-learning-addition data-self-paced-recap data-stage="deploy" data-mode-content="self-paced">
+        <h4>Recap</h4>
+        <p>Deploy commits PR + <code>REVIEW.md</code>; a human merges and marks the intent <code>shipped</code>.</p>
+        <div class="qmount" data-learning-addition data-question-stage="deploy"></div>
+      </div>
     </div>
 
-    <div class="panel" role="tabpanel" id="p6" aria-labelledby="t6" tabindex="0">
+    <div class="panel" role="tabpanel" id="p6" data-stage="maintain" aria-labelledby="t6" tabindex="0">
       <h3>Stage 6 — Maintain</h3>
       <p class="lede" style="font-size:1rem">The loop closes. A trigger invokes the agent with no
       person in the invocation path, and what it finds re-enters the pipeline as
@@ -542,6 +704,22 @@ tiers:
   1sigma: { action: log }
   2sigma: { action: diagnose, tools: "Read,Grep,Bash(gh run view *)" }
   3sigma: { action: propose, routes: [pull_request, runbook:rollback-deploy] }</code></pre>
+      <div class="lguide mentor-guide" data-learning-addition data-mentor-guide data-stage="maintain" data-duration="8" data-mode-content="mentor">
+        <h4>Mentor guide · Maintain <span class="dur">≈ 8 min</span></h4>
+        <dl>
+          <dt data-learning-addition data-mentor-part="objective">Objective</dt>
+          <dd>Explain deterministic detection and how breaches re-enter the loop.</dd>
+          <dt data-learning-addition data-mentor-part="ask">Ask the room</dt>
+          <dd>Why must detection be deterministic rather than model judgement?</dd>
+          <dt data-learning-addition data-mentor-part="demonstrate">Demonstrate</dt>
+          <dd>Trace a <code>bands.yaml</code> breach to a new <code>intent.md</code>.</dd>
+        </dl>
+      </div>
+      <div class="lguide sp-recap" data-learning-addition data-self-paced-recap data-stage="maintain" data-mode-content="self-paced">
+        <h4>Recap</h4>
+        <p>Maintain turns a <code>bands.yaml</code> breach into a gated new <code>intent.md</code>.</p>
+        <div class="qmount" data-learning-addition data-question-stage="maintain"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -849,11 +1027,22 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
 <section id="check">
   <div class="wrap">
     <h2>Self-check</h2>
-    <p class="lede">Six questions on the things that actually bite.
-      <span class="score" id="score">Not started</span></p>
-    <noscript><p class="lede">The self-check needs JavaScript. Everything else on this page works
-    without it — the questions are the only part that does not.</p></noscript>
-    <div id="quiz"></div>
+    <p class="lede">Six scenario checks on the things that actually bite. Each one now lives inside
+    its matching stage panel above, in Self-paced mode — one check per stage rather than a single
+    list here. <span class="score" id="score">Not started</span></p>
+    <noscript><p class="lede">Mode switching, the interactive stage checks and saved progress need
+    JavaScript. Everything else works without it: all six canonical stage panels, every Mentor
+    guide, every Self-paced recap, the figures, tables, the lab, the honest limits and the sources
+    all remain visible and readable.</p></noscript>
+    <ul class="kv" data-learning-addition data-mode-content="self-paced">
+      <li><strong>Plan.</strong> What a skipped required check looks like to branch protection.</li>
+      <li><strong>Design / Build.</strong> What binding acceptance to <code>HEAD</code> costs you.</li>
+      <li><strong>Test / Deploy.</strong> What a green gate certifies, and what a chain left <code>accepted</code> leaves open.</li>
+      <li><strong>Maintain.</strong> Where the model belongs in Stage 6 detection.</li>
+    </ul>
+    <p class="lede" data-learning-addition data-mode-content="self-paced" style="font-size:1rem">Open Self-paced mode
+    above, work each stage, answer its check, then use <strong>Mark Stage Complete</strong> when
+    you are satisfied you understand it — completion is yours to declare, never inferred.</p>
   </div>
 </section>
 
@@ -883,6 +1072,16 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
     process actually enforces rather than what it says.</p>
   </div>
 </section>
+
+<dialog class="reset-dialog" data-learning-addition data-reset-dialog aria-labelledby="reset-dtitle">
+  <h2 id="reset-dtitle">Reset your local progress?</h2>
+  <p>This clears the completed stages and current position stored in this browser only. Nothing
+  was ever sent anywhere, and this cannot be undone.</p>
+  <div class="row">
+    <button type="button" data-learning-addition data-reset-cancel>Cancel</button>
+    <button type="button" class="danger" data-learning-addition data-reset-confirm>Reset progress</button>
+  </div>
+</dialog>
 
 </main>
 
@@ -939,53 +1138,59 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
   }
 
   /* ---- self-check ---------------------------------------------------------------
-     Built by script into an empty container. Absent without JavaScript, never broken.
-     The explanation is the teaching, so it states the mechanism rather than "correct". */
+     Built by script into the per-stage mounts. Absent without JavaScript, never broken.
+     Each entry is bound to one canonical stage and rendered into that stage's mount only. */
   var QUESTIONS = [
-    { q:"A required CI check reports <code>skipped</code> on a pull request. What does branch protection see?",
+    { stage:"plan",
+      q:"A required CI check reports <code>skipped</code> on a pull request. What does branch protection see?",
       o:["A failure that blocks the merge","A pass — skipped counts as green","Nothing; the PR waits forever"],
       a:1,
-      why:"GitHub treats a skipped required check as PASSING. That is why a summary job must run <code>if: always()</code> and inspect its dependencies' results explicitly, instead of being skipped alongside them." },
+      why:"GitHub counts a skipped required check as passing. A summary job must run <code>if: always()</code> and reject non-green dependencies." },
 
-    { q:"You accept a plan and record the approval against <code>git rev-parse HEAD</code>, then push two more commits and open the PR. What happens?",
+    { stage:"design",
+      q:"You accept a plan and record the approval against <code>git rev-parse HEAD</code>, then push two more commits and open the PR. What happens?",
       o:["It passes — HEAD is the branch being merged","The gate refuses: the recorded base is not the PR's merge base","Nothing, the field is advisory"],
       a:1,
-      why:"The gate verifies the binding against the pull request's <em>merge base</em> — the fork point the approval was granted at. The branch tip moves after the branch is cut, so recording HEAD stores a value the gate will not match." },
+      why:"The gate compares approval with the PR <em>merge base</em>. HEAD moves after branching, so its recorded value no longer matches." },
 
-    { q:"A chain merges and you leave its artifacts as <code>accepted</code>. What is still open?",
-      o:["Nothing; the merge closed it","A spent approval that still authorises edits to every file its plan named","Only a cosmetic status field"],
-      a:1,
-      why:"<code>.sdlc/active</code> keeps pointing at the chain and its plan still names those files, so the next unrelated edit passes with no new approval. Marking it <code>shipped</code> makes the chain refuse and tells the author to open a new intent." },
-
-    { q:"Where does the model belong in Stage 6 detection?",
-      o:["It decides whether the metric breached its band","Nowhere — detection is a deterministic, unit-tested script","It votes, and a human breaks the tie"],
-      a:1,
-      why:"Detection stays entirely deterministic and version-controlled. The agent is invoked only <em>after</em> a band is breached, and the tier decides what it may then do: log, diagnose read-only, or act by opening a pull request." },
-
-    { q:"Your eval asserts that <code>submit-btn</code> appears in the HTML and it passes. The button sits behind <code>display:none</code>. What does the green gate mean?",
+    { stage:"build",
+      q:"Your eval asserts that <code>submit-btn</code> appears in the HTML and it passes. The button sits behind <code>display:none</code>. What does the green gate mean?",
       o:["The change is correct","The declared checks passed — nothing more","The eval is broken and CI will flag it"],
       a:1,
-      why:"This is the weak-eval hole, and it is a permanent limitation rather than a bug. A gate can verify that an eval exists and passes; it cannot judge whether the eval measures the thing that matters. Only a human reading the requirement catches it." },
+      why:"A gate proves only its declared checks. It cannot judge whether an eval measures the requirement; human review must catch that." },
 
-    { q:"The reference implementation ships a written contract for a tamper-evident audit sink. What has that achieved?",
+    { stage:"test",
+      q:"The reference implementation ships a written contract for a tamper-evident audit sink. What has that achieved?",
       o:["The control is now in place","An integration boundary is documented; the control is still enterprise-owned and not provided","It raises the readiness score"],
       a:1,
-      why:"Writing a contract is not deploying a control. The audit trail is still git history in the repository being governed, which the governed party can rewrite — so the control remains enterprise-owned, and documentation does not move the 36/80 score." }
+      why:"A contract defines an integration boundary; it does not deploy the enterprise-owned sink or raise the 36/80 score." },
+
+    { stage:"deploy",
+      q:"A chain merges and you leave its artifacts as <code>accepted</code>. What is still open?",
+      o:["Nothing; the merge closed it","A spent approval that still authorises edits to every file its plan named","Only a cosmetic status field"],
+      a:1,
+      why:"The active plan still authorises its named files. <code>shipped</code> closes that approval and requires a new intent." },
+
+    { stage:"maintain",
+      q:"Where does the model belong in Stage 6 detection?",
+      o:["It decides whether the metric breached its band","Nowhere — detection is a deterministic, unit-tested script","It votes, and a human breaks the tie"],
+      a:1,
+      why:"A deterministic script detects the breach; only then may the tier invoke the agent to log, diagnose or open a pull request." }
   ];
 
-  var quiz = document.getElementById('quiz');
   var scoreEl = document.getElementById('score');
-  if(!quiz) return;
-
   var answered = 0, correct = 0;
 
-  QUESTIONS.forEach(function(item, qi){
+  QUESTIONS.forEach(function(item){
+    var mount = document.querySelector('[data-question-stage="' + item.stage + '"]');
+    if(!mount) return;
+
     var box = document.createElement('div');
     box.className = 'q';
 
     var stem = document.createElement('p');
     stem.className = 'stem';
-    stem.innerHTML = (qi + 1) + '. ' + item.q;
+    stem.innerHTML = item.q;
     box.appendChild(stem);
 
     var opts = document.createElement('div');
@@ -1019,8 +1224,201 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
 
     box.appendChild(opts);
     box.appendChild(fb);
-    quiz.appendChild(box);
+    mount.appendChild(box);
   });
+
+  /* ---- learning modes: two projections over the six canonical panels; Self-paced
+     tracks local progress with explicit completion, Mentor shows facilitation prompts
+     and writes none. Storage failure degrades to session-only; reset is confirm-only. */
+  var LEARNING_STORAGE_KEY = 'ai-native-sdlc.learning.v1';
+  var LEARNING_SCHEMA_VERSION = 1;
+  var LEARNING_STORAGE_FIELDS = ['version', 'mode', 'currentStage', 'completedStages'];
+  var LEARNING_STAGES = ['plan', 'design', 'build', 'test', 'deploy', 'maintain'];
+  var LEARNING_MODES = ['self-paced', 'mentor'];
+
+  var storageWritable = true;
+  var sessionState = null;
+
+  function defaultLearningState(){
+    return {
+      version: LEARNING_SCHEMA_VERSION,
+      mode: 'self-paced',
+      currentStage: 'plan',
+      completedStages: []
+    };
+  }
+
+  function validateLearningState(record){
+    if(!record || typeof record !== 'object') return defaultLearningState();
+    var recordKeys = Object.keys(record);
+    for(var i = 0; i < recordKeys.length; i++){
+      var key = recordKeys[i];
+      if(LEARNING_STORAGE_FIELDS.indexOf(key) === -1){ return defaultLearningState(); }
+    }
+    var clean = defaultLearningState();
+    if(record.version === LEARNING_SCHEMA_VERSION){ clean.version = record.version; }
+    else { return defaultLearningState(); }
+    if(LEARNING_MODES.indexOf(record.mode) !== -1){ clean.mode = record.mode; }
+    if(LEARNING_STAGES.indexOf(record.currentStage) !== -1){ clean.currentStage = record.currentStage; }
+    if(Object.prototype.toString.call(record.completedStages) === '[object Array]'){
+      clean.completedStages = record.completedStages.filter(function(s){
+        return LEARNING_STAGES.indexOf(s) !== -1;
+      });
+    }
+    return clean;
+  }
+
+  function loadLearningState(){
+    if(sessionState){ return validateLearningState(sessionState); }
+    var raw = null;
+    try{
+      raw = localStorage.getItem(LEARNING_STORAGE_KEY);
+    }catch(e){
+      storageWritable = false;
+      return defaultLearningState();
+    }
+    if(!raw){ return defaultLearningState(); }
+    try{
+      return validateLearningState(JSON.parse(raw));
+    }catch(e){
+      return defaultLearningState();
+    }
+  }
+
+  function saveLearningState(state){
+    var clean = validateLearningState(state);
+    sessionState = clean;
+    if(!storageWritable){ return clean; }
+    try{
+      localStorage.setItem(LEARNING_STORAGE_KEY, JSON.stringify(clean));
+    }catch(e){
+      storageWritable = false;
+    }
+    return clean;
+  }
+
+  function clearLearningState(){
+    sessionState = defaultLearningState();
+    if(!storageWritable){ return sessionState; }
+    try{
+      localStorage.removeItem(LEARNING_STORAGE_KEY);
+    }catch(e){
+      storageWritable = false;
+    }
+    return sessionState;
+  }
+
+  var root = document.documentElement;
+  var liveEl = document.querySelector('[data-learning-live]');
+  var progressEl = document.querySelector('[data-learning-progress] progress');
+  var progressText = document.querySelector('[data-progress-text]');
+  var continueBtn = document.querySelector('[data-learning-continue]');
+  var markBtn = document.querySelector('[data-mark-complete]');
+  var resetBtn = document.querySelector('[data-learning-reset]');
+  var resetDialog = document.querySelector('[data-reset-dialog]');
+  var resetCancel = document.querySelector('[data-reset-cancel]');
+  var resetConfirm = document.querySelector('[data-reset-confirm]');
+  var modeChoices = Array.prototype.slice.call(document.querySelectorAll('[data-learning-mode-choice]'));
+
+  function announce(msg){ if(liveEl){ liveEl.textContent = msg; } }
+
+  function sessionOnlyNotice(){
+    if(!storageWritable && progressText){
+      progressText.setAttribute('data-session-only', 'true');
+    }
+  }
+
+  function renderProgress(state){
+    var done = state.completedStages.length;
+    if(progressEl){ progressEl.value = done; }
+    if(progressText){
+      progressText.textContent = done + ' of ' + LEARNING_STAGES.length + ' stages complete'
+        + (!storageWritable ? ' — session-only (storage unavailable, not saved)' : '');
+    }
+    if(continueBtn){
+      continueBtn.textContent = done > 0 ? 'Continue' : 'Start';
+    }
+  }
+
+  function applyMode(mode){
+    // Progressive enhancement: the mode attribute lands on the root only once JS runs.
+    root.setAttribute('data-learning-mode', mode);
+    modeChoices.forEach(function(btn){
+      var on = btn.getAttribute('data-learning-mode-choice') === mode;
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function setLearningMode(mode){
+    if(LEARNING_MODES.indexOf(mode) === -1){ return; }
+    var state = loadLearningState();
+    state.mode = mode;
+    var saved = saveLearningState(state);
+    applyMode(saved.mode);
+    announce(mode === 'mentor'
+      ? 'Mentor mode. Facilitation guidance shown; progress is not tracked.'
+      : 'Self-paced mode. Track and mark each stage complete yourself.');
+  }
+
+  function markStageComplete(){
+    var state = loadLearningState();
+    if(state.mode !== 'self-paced'){ return; }
+    var selectedTab = document.querySelector('[role="tab"][aria-selected="true"]');
+    var idx = selectedTab ? tabs.indexOf(selectedTab) : 0;
+    var stage = LEARNING_STAGES[idx] || 'plan';
+    if(state.completedStages.indexOf(stage) === -1){
+      state.completedStages.push(stage);
+    }
+    state.currentStage = stage;
+    var saved = saveLearningState(state);
+    renderProgress(saved);
+    sessionOnlyNotice();
+    announce('Stage marked complete: ' + saved.completedStages.length + ' of ' + LEARNING_STAGES.length + '.');
+  }
+
+  function openResetDialog(){
+    if(resetDialog && typeof resetDialog.showModal === 'function'){ resetDialog.showModal(); }
+    else if(resetDialog){ resetDialog.setAttribute('open', ''); }
+  }
+
+  function closeResetDialog(){
+    if(resetDialog && typeof resetDialog.close === 'function'){ resetDialog.close(); }
+    else if(resetDialog){ resetDialog.removeAttribute('open'); }
+  }
+
+  function confirmLearningReset(){
+    var cleared = clearLearningState();
+    applyMode(cleared.mode);
+    renderProgress(cleared);
+    closeResetDialog();
+    announce('Local progress reset.');
+  }
+
+  (function initLearning(){
+    if(!modeChoices.length) return;
+    var state = loadLearningState();
+    applyMode(state.mode);
+    renderProgress(state);
+    sessionOnlyNotice();
+
+    modeChoices.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        setLearningMode(btn.getAttribute('data-learning-mode-choice'));
+      });
+    });
+    if(continueBtn){
+      continueBtn.addEventListener('click', function(){
+        var s = loadLearningState();
+        var next = s.currentStage || 'plan';
+        var idx = LEARNING_STAGES.indexOf(next);
+        if(idx >= 0 && tabs[idx]){ tabs[idx].focus(); select(tabs[idx]); }
+      });
+    }
+    if(markBtn){ markBtn.addEventListener('click', markStageComplete); }
+    if(resetBtn){ resetBtn.addEventListener('click', openResetDialog); }
+    if(resetCancel){ resetCancel.addEventListener('click', closeResetDialog); }
+    if(resetConfirm){ resetConfirm.addEventListener('click', confirmLearningReset); }
+  })();
 })();
 </script>
 </body>
