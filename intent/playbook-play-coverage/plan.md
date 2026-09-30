@@ -2,9 +2,9 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Accepted-for:** 514366c8b9d99e38b7fa17e4547ce61e9c713581
-- **Status:** draft
+- **Status:** accepted
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time. It binds review to protected
 `main` after the mentor/self-paced closeout, not to this branch's artifact commits.
