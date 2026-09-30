@@ -2,8 +2,8 @@
 
 - **Intent:** ./intent.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
-- **Status:** draft
+- **Accepted-by:** Tim WU
+- **Status:** signed-off
 - **Revision:** 2 — requirements 19, 23 and 24 revised to a ratchet after measurement showed the
   merged `index.html` already shares eight-word windows with the source. Re-sign-off required.
 
