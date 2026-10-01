@@ -2,9 +2,11 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** Tim WU
+- **Accepted-by:** pending
 - **Accepted-for:** 514366c8b9d99e38b7fa17e4547ce61e9c713581
-- **Status:** accepted
+- **Status:** draft
+- **Revision:** 2 — steps 15 and 25 revised after step 16 measured `index.html` over the cap.
+  Plays links carry no learning marker; the cap stays 85,000. Re-acceptance required.
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time. It binds review to protected
 `main` after the mentor/self-paced closeout, not to this branch's artifact commits.
@@ -90,9 +92,11 @@ fixtures are built by `verify.py` itself so the builder and the checker share on
 14. **Rewrite the note shorter.** Keep the heading; name the six out-of-scope plays as `data-oos`
     anchors and the two cross-cutting notes with `data-crosscut`. New prose must add no hash
     outside the baseline.
-15. **Add links.** One header-nav link to `plays.html`, one short "Plays for this stage" link at the
-    end of each panel. Mark each new node `data-learning-addition` only if it lives inside a panel,
-    so the mentor-mode canonical-text comparison still passes.
+15. **Add links.** One header-nav link to `plays.html`, one short "Stage plays" link at the end of
+    each panel. The links carry no `data-learning-addition` marker: that marker means learning-mode
+    content, no stylesheet, script, workflow or check reads it on a link, and the `index plays:`
+    checks find the links by `href`. The note opens "Out of scope:" and keeps the phrases
+    "recurring security scans" and "legacy-system onboarding" that existing checks require.
 16. **Measure.** If `index.html` exceeds 85,000 bytes, stop and return to the owner. Do not trim
     other lessons, minify, or raise the cap. All prior 314 checks stay green.
 
@@ -118,7 +122,8 @@ fixtures are built by `verify.py` itself so the builder and the checker share on
     both page sizes.
 24. `python3 verify.py --mutations` reports 10/10 killed.
 25. Mentor/Self-paced contracts remain green; the canonical-text comparison against
-    `origin/main:index.html` (additions removed) differs only in the rewritten note.
+    `origin/main:index.html` (additions removed) differs only in the rewritten note and the seven
+    plays links (one header-nav, six stage).
 26. Privacy tests (31), privacy mutation proof (10/10), staged full-tree privacy scan (0 findings),
     `py_compile`, `git diff --check`, SDLC CI gate with `--require-active`, the real changed-file
     list and base `514366c…`.
