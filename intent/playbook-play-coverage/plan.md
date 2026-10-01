@@ -6,7 +6,9 @@
 - **Accepted-for:** 514366c8b9d99e38b7fa17e4547ce61e9c713581
 - **Status:** draft
 - **Revision:** 2 — steps 15 and 25 revised after step 16 measured `index.html` over the cap.
-  Plays links carry no learning marker; the cap stays 85,000. Re-acceptance required.
+  Plays links carry no learning marker; the cap stays 85,000. Steps 3 and 12 revised after the
+  privacy scan found 49 payment-card false positives in the hex fixtures; hashes are stored as
+  base32. Re-acceptance required.
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time. It binds review to protected
 `main` after the mentor/self-paced closeout, not to this branch's artifact commits.
@@ -39,7 +41,8 @@ fixtures are built by `verify.py` itself so the builder and the checker share on
 2. **Accept this plan.** The owner replaces `pending`/`draft`; the acceptance commit must open the
    Test gate before `verify.py` changes.
 3. **One normaliser.** Add `shingles(text)`: lower-case, replace every non-alphanumeric run with a
-   space, collapse whitespace, emit every eight-word window, SHA-256 each window. Text comes from
+   space, collapse whitespace, emit every eight-word window, SHA-256 each window and encode the
+   digest as lowercase unpadded base32 (52 characters). Text comes from
    the existing stdlib `Page` extractor (markup text, excluding `<script>` and `<style>`).
 4. **`plays` checks (spec 1, 3, 5-17, 20-21).** Load `plays.html` if present; when absent, emit named
    `plays:` findings, never a traceback. Assert: byte cap 55,000; no `<script>`, no external
@@ -82,8 +85,10 @@ fixtures are built by `verify.py` itself so the builder and the checker share on
 11. **Fetch and build in one shell invocation.** Download the source page into scratch, pipe it to
     `--build-source-shingles`, then delete it in the same invocation. The source text is never
     staged. Build the baseline from `514366c`.
-12. **Inspect.** Fixtures contain only header comments and 64-hex lines; `git grep` finds no source
-    sentence in `evals/`; privacy scan is clean. Record both counts.
+12. **Inspect.** Fixtures contain only header comments and 52-character base32 lines; `git grep`
+    finds no source sentence in `evals/`; `scripts/privacy_scan.py --repo .` over the tracked tree
+    and the pre-push hook over every unpushed commit both report 0 findings. Hex encoding is
+    rejected: digit runs inside hex digests match the payment-card rule. Record both counts.
 13. **Observe partial green.** Overlap checks for `index.html` now pass on the baseline;
     `plays:` findings remain. Commit the two fixtures alone.
 
