@@ -2,9 +2,9 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Accepted-for:** 514366c8b9d99e38b7fa17e4547ce61e9c713581
-- **Status:** draft
+- **Status:** accepted
 - **Revision:** 3 — steps 6, 8, 24 and the success criteria follow spec revision 3: the overlap
   check exempts the 16 required play headings, and an eleventh mutation proves the exemption
   does not widen. Re-acceptance required.
