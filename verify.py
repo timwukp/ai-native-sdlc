@@ -1332,6 +1332,21 @@ def index_play_link_checks(index_html: str, plays_html: str) -> None:
           f"found {cross}")
 
 
+def exempt_play_headings(html: str) -> str:
+    """Drop each entry's first heading when its text is exactly the spec play name (spec 19)."""
+    for pid, _, name, _, _ in PLAYS:
+        start = re.search(rf'<article\b[^>]*\bid="{re.escape(pid)}"', html)
+        if not start:
+            continue
+        head = re.compile(r"<(h[2-6])\b[^>]*>(.*?)</\1>", re.S).search(html, start.end())
+        if not head:
+            continue
+        text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", head.group(2))).strip()
+        if text == name:
+            html = html[:head.start()] + html[head.end():]
+    return html
+
+
 def overlap_checks(index_html: str, plays_html: str,
                    source_text: str | None, baseline_text: str | None) -> None:
     """Spec 19: plays.html shares no window with the source; index.html may only shrink."""
@@ -1352,7 +1367,8 @@ def overlap_checks(index_html: str, plays_html: str,
           and (b_head.get("count") or "").isdigit(), f"header={b_head} bad={b_bad[:2]}")
     source = set(s_hashes)
     baseline = set(b_hashes)
-    plays_hits = sorted({w for h, w in windows(visible_text(plays_html)) if h in source})
+    plays_hits = sorted({w for h, w in windows(visible_text(exempt_play_headings(plays_html)))
+                         if h in source})
     check("overlap: plays.html shares no eight-word window with the source",
           bool(plays_html) and not plays_hits, f"{len(plays_hits)} hits, e.g. {plays_hits[:2]}")
     idx = windows(visible_text(index_html))
@@ -1480,6 +1496,14 @@ def _mut_paste_plays(inp: dict) -> dict | None:
     return {**inp, "plays": new} if new else None
 
 
+def _mut_paste_heading(inp: dict) -> dict | None:
+    """A heading that is more than its play name loses the spec 19 exemption."""
+    words = _baseline_words(inp)
+    pattern = r'(<article\b[^>]*\bid="capture-intent"[^>]*>\s*<h3>.*?)(</h3>)'
+    new = _swap(inp["plays"], pattern, rf"\1 {words[0][1]}\2") if words else None
+    return {**inp, "plays": new} if new else None
+
+
 def _on(key: str, pattern: str, repl) -> object:
     def apply(inp: dict) -> dict | None:
         new = _swap(inp[key], pattern, repl)
@@ -1505,6 +1529,8 @@ MUTATIONS = (
      _on("plays", r'(<dt\b[^>]*\bid="term-hook"[^>]*>.*?</dt>)', r"\1\1")),
     ("paste an eight-word source window into plays.html",
      "overlap: plays.html shares no eight-word window with the source", _mut_paste_plays),
+    ("append a source window to a play heading",
+     "overlap: plays.html shares no eight-word window with the source", _mut_paste_heading),
     ("index.html source window missing from the baseline",
      "overlap: every index.html source match is in the baseline", _mut_unlisted),
     ("add one extra hash to the baseline",
