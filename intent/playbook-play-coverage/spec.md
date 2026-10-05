@@ -2,10 +2,13 @@
 
 - **Intent:** ./intent.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** Tim WU
-- **Status:** signed-off
-- **Revision:** 2 — requirements 19, 23 and 24 revised to a ratchet after measurement showed the
-  merged `index.html` already shares eight-word windows with the source. Re-sign-off required.
+- **Accepted-by:** pending
+- **Status:** draft
+- **Revision:** 3 — requirement 19 exempts the 16 play headings that requirement 5 fixes verbatim,
+  after implementation measured that the nine-word name of play 3 itself contains a source
+  window. Revision 2 revised requirements 19, 23 and 24 to a ratchet after measurement showed
+  the merged `index.html` already shares eight-word windows with the source. Re-sign-off
+  required.
 
 ## Measured baseline
 
@@ -187,7 +190,13 @@ indicators to fill the grid would break the intent's faithfulness constraint.
     not the source text, so the repository does not redistribute the prose it is checking
     against. It records the source URL and date and the command that produced it. The rule is a
     ratchet:
-    - **`plays.html`: zero matching windows.** No exception list applies to it.
+    - **`plays.html`: zero matching windows.** The one exemption is the heading of each of the
+      16 entries, whose text requirement 5 fixes as the source play name: before windowing, the
+      verifier removes the text of an entry's first heading only when it equals that entry's
+      name in the requirement 5 table exactly. Like file and identifier names under
+      requirement 18, a play name is a name, not a reproduced sentence. Any other element,
+      including a heading elsewhere that repeats a play name inside longer text, is checked in
+      full. No hash exception list applies to `plays.html`.
     - **`index.html`, new text: zero matching windows.** Every matching window must appear in the
       committed baseline `evals/index-source-overlap-baseline.txt`; a match not in the baseline
       fails, so text this PR adds or rewrites cannot copy the source.
@@ -215,7 +224,7 @@ indicators to fill the grid would break the intent's faithfulness constraint.
 22. `verify.py` gains a `plays` section, added red first: the commit adding it fails on the
     current tree with named `plays:` findings only, with no traceback and all 314 existing checks
     green.
-23. After implementation: all Portal checks green, 31 privacy tests, 10/10 mutations, full-tree
+23. After implementation: all Portal checks green, 31 privacy tests, 11/11 catalogue mutations, full-tree
     privacy scan with 0 findings, SDLC gate passing, `git diff --check` clean. The source-overlap
     check reports `plays.html` 0 hits, `index.html` 0 hits outside the baseline, and a baseline
     count no higher than the one recorded at `514366c`.
@@ -224,7 +233,8 @@ indicators to fill the grid would break the intent's faithfulness constraint.
     figure only; duplicate one glossary term; paste one eight-word source sentence into
     `plays.html`; paste one eight-word source sentence not in the baseline into `index.html`; add
     one extra hash to the baseline; leave one stale hash in the baseline after its text is
-    removed. Each must go red.
+    removed; append an eight-word source sentence to one entry's heading, so the heading no
+    longer equals its play name and loses the requirement 19 exemption. Each must go red.
 25. Rendered evidence against an immutable commit URL: `plays.html` at 360/768/1440px screenshots;
     overflow at 360/768/1024/1440px; keyboard traversal from skip link through every entry;
     no-JavaScript render; print; console; and the `index.html` stage links landing on the right
@@ -257,5 +267,9 @@ the SDLC gate, hooks and branch protection are not changed.
   the existing overlap is listed on every run and may only shrink, and clearing it is left to a
   separate intent. The intent's paraphrase constraint is met in full for `plays.html` and for
   all new `index.html` text, not yet for the pre-existing lessons.
+- **Play-name exemption.** "Claude Code plan mode as the default starting point" is nine words,
+  so the verbatim heading requirement 5 demands shares an eight-word window with the source.
+  Requirement 19 exempts exactly the 16 required headings rather than shortening the name
+  (which would misname the play) or allowing a hit count (which would admit copied prose).
 - **Budgets.** `plays.html` gets a new 55,000-byte cap. `index.html` stays at 85,000 and must
   absorb the new links by shortening the note. Overrunning either one stops work.

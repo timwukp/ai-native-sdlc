@@ -2,10 +2,13 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** Tim WU
+- **Accepted-by:** pending
 - **Accepted-for:** 514366c8b9d99e38b7fa17e4547ce61e9c713581
-- **Status:** accepted
-- **Revision:** 2 — steps 15 and 25 revised after step 16 measured `index.html` over the cap.
+- **Status:** draft
+- **Revision:** 3 — steps 6, 8, 24 and the success criteria follow spec revision 3: the overlap
+  check exempts the 16 required play headings, and an eleventh mutation proves the exemption
+  does not widen. Re-acceptance required.
+- **Revision 2:** steps 15 and 25 revised after step 16 measured `index.html` over the cap.
   Plays links carry no learning marker; the cap stays 85,000. Steps 3 and 12 revised after the
   privacy scan found 49 payment-card false positives in the hex fixtures; hashes are stored as
   base32. Re-acceptance required.
@@ -64,7 +67,8 @@ fixtures are built by `verify.py` itself so the builder and the checker share on
    `data-oos` id set equal to `plays.html`'s out-of-scope set in both directions, plus both
    `data-crosscut` names.
 6. **Overlap ratchet (spec 19).** Read both fixtures; missing fixtures are named findings. Require
-   `plays.html` windows ∩ source = ∅. Require every `index.html` hit to be in the baseline, every
+   `plays.html` windows ∩ source = ∅, after removing the text of each entry's first heading only
+   where it equals that entry's spec play name exactly (spec 19). Require every `index.html` hit to be in the baseline, every
    baseline hash to still hit, and the baseline line count ≤ the count in its header. Print the
    baseline count and each baseline hit's eight words (from `index.html`, not the source).
 7. **Fixture builders.** `--build-source-shingles FILE` reads the fetched source page, extracts
@@ -72,8 +76,8 @@ fixtures are built by `verify.py` itself so the builder and the checker share on
    source date 2026-08-21, fetch date, command, count). `--build-overlap-baseline` reads
    `git show 514366c:index.html` and writes the sorted intersection with the same header shape.
    Both are deterministic: rerunning on the same input yields identical bytes.
-8. **Mutation mode (spec 24).** `--mutations` applies each of the ten spec mutations to in-memory
-   copies of pages/fixtures and requires each to produce its named finding; it exits 0 only if 10/10
+8. **Mutation mode (spec 24).** `--mutations` applies each of the eleven spec mutations to in-memory
+   copies of pages/fixtures and requires each to produce its named finding; it exits 0 only if 11/11
    are killed. Every mutation anchors on a string the verifier first asserts is present, so a moved
    anchor fails loudly instead of silently disabling the mutant. It never writes to the tree.
 9. **Observe red.** `python3 verify.py` fails with named `plays:`/`overlap:`/`index plays:` findings
@@ -125,7 +129,7 @@ fixtures are built by `verify.py` itself so the builder and the checker share on
 23. `python3 verify.py` exits 0; output shows 16 plays, 4/6/6 statuses, edge count, figure edge
     count, glossary size, `plays.html` 0 hits, `index.html` 0 hits outside baseline, baseline count,
     both page sizes.
-24. `python3 verify.py --mutations` reports 10/10 killed.
+24. `python3 verify.py --mutations` reports 11/11 killed.
 25. Mentor/Self-paced contracts remain green; the canonical-text comparison against
     `origin/main:index.html` (additions removed) differs only in the rewritten note and the seven
     plays links (one header-nav, six stage).
@@ -165,7 +169,7 @@ git diff --check
 Pass conditions: red commit fails with named findings only and 314 prior checks green; final run
 exits 0; 16 plays with statuses 4/6/6; `plays.html` ≤ 55,000 and `index.html` ≤ 85,000 bytes;
 `plays.html` 0 overlap hits; `index.html` 0 hits outside a baseline no larger than at `514366c`;
-10/10 new mutants and 10/10 privacy mutants killed; 0 privacy findings; SDLC gate passes naming
+11/11 new mutants and 10/10 privacy mutants killed; 0 privacy findings; SDLC gate passes naming
 every changed file; noreply identity; `.kiro/settings/` unstaged.
 
 ## Risks
