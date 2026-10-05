@@ -26,6 +26,7 @@ Exit 0 = all checks pass.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import pathlib
 import re
@@ -1000,13 +1001,21 @@ def normalised_words(text: str) -> list[str]:
     return re.sub(r"[\W_]+", " ", text.casefold()).split()
 
 
+def digest(data: bytes) -> str:
+    """SHA-256 as lowercase unpadded base32 (52 characters).
+
+    Hex is not used: its digit runs match the privacy scan's payment-card rule.
+    """
+    return base64.b32encode(hashlib.sha256(data).digest()).decode("ascii").rstrip("=").lower()
+
+
 def windows(text: str) -> list[tuple[str, str]]:
-    """Every eight-word window of visible text, as (sha256 hex, words)."""
+    """Every eight-word window of visible text, as (sha256 base32, words)."""
     words = normalised_words(text)
     out = []
     for k in range(len(words) - WINDOW + 1):
         w = " ".join(words[k:k + WINDOW])
-        out.append((hashlib.sha256(w.encode("utf-8")).hexdigest(), w))
+        out.append((digest(w.encode("utf-8")), w))
     return out
 
 
@@ -1026,7 +1035,7 @@ def read_fixture(text: str) -> tuple[dict[str, str], list[str], list[str]]:
             m = re.match(r"#\s*([a-z-]+):\s*(.*)$", line)
             if m:
                 header[m.group(1)] = m.group(2).strip()
-        elif re.fullmatch(r"[0-9a-f]{64}", line):
+        elif re.fullmatch(r"[a-z2-7]{52}", line):
             hashes.append(line)
         elif line.strip():
             bad.append(line[:40])
@@ -1393,8 +1402,8 @@ def build_source_shingles(page: pathlib.Path, fetched: str) -> int:
     hashes = sorted({h for h, _ in windows(visible_text(page.read_text(encoding="utf-8")))})
     SOURCE_SHINGLES.parent.mkdir(exist_ok=True)
     SOURCE_SHINGLES.write_text(_fixture([
-        "# SHA-256 of every eight-word window of the source's visible text. Hashes only;",
-        "# the source prose is not redistributed here.",
+        "# SHA-256 (lowercase base32) of every eight-word window of the source's visible",
+        "# text. Hashes only; the source prose is not redistributed here.",
         f"# source: {SOURCE_URL}",
         f"# source-date: {SOURCE_DATE}",
         f"# fetched: {fetched}",
@@ -1411,8 +1420,9 @@ def build_overlap_baseline() -> int:
                          capture_output=True, text=True, check=True).stdout
     hashes = sorted({h for h, _ in windows(visible_text(old)) if h in source})
     OVERLAP_BASELINE.write_text(_fixture([
-        "# SHA-256 of eight-word windows index.html already shared with the source at the ref",
-        "# below. The list may only shrink: stale entries fail, and so does growth past count.",
+        "# SHA-256 (lowercase base32) of eight-word windows index.html already shared with the",
+        "# source at the ref below. The list may only shrink: stale entries fail, and so does",
+        "# growth past count.",
         f"# ref: {BASELINE_REF}",
         "# command: python3 verify.py --build-overlap-baseline",
     ], hashes), encoding="utf-8")
@@ -1459,7 +1469,7 @@ def _mut_extra_hash(inp: dict) -> dict | None:
     if not inp["baseline"]:
         return None
     head, hashes, _ = read_fixture(inp["baseline"])
-    extra = hashlib.sha256(b"verify.py mutation: extra baseline hash").hexdigest()
+    extra = digest(b"verify.py mutation: extra baseline hash")
     body = [ln for ln in inp["baseline"].splitlines() if ln.startswith("#")]
     return {**inp, "baseline": "\n".join(body + sorted(hashes + [extra])) + "\n"}
 
