@@ -2,6 +2,9 @@
 
 **Read it here: <https://timwukp.github.io/ai-native-sdlc/>**
 
+Every Playbook play, with this repository's status for each:
+[the play catalogue](https://timwukp.github.io/ai-native-sdlc/plays.html).
+
 One page, nothing to install, works offline once loaded. Written to be worked through in one
 sitting.
 
