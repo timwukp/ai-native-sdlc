@@ -2,9 +2,9 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Accepted-for:** 514366c8b9d99e38b7fa17e4547ce61e9c713581
-- **Status:** draft
+- **Status:** accepted
 - **Revision:** 2 — steps 15 and 25 revised after step 16 measured `index.html` over the cap.
   Plays links carry no learning marker; the cap stays 85,000. Steps 3 and 12 revised after the
   privacy scan found 49 payment-card false positives in the hex fixtures; hashes are stored as
