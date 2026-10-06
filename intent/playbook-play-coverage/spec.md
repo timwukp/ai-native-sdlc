@@ -3,7 +3,7 @@
 - **Intent:** ./intent.md
 - **Author:** Kiro (AI agent)
 - **Accepted-by:** Tim WU
-- **Status:** signed-off
+- **Status:** shipped
 - **Revision:** 3 — requirement 19 exempts the 16 play headings that requirement 5 fixes verbatim,
   after implementation measured that the nine-word name of play 3 itself contains a source
   window. Revision 2 revised requirements 19, 23 and 24 to a ratchet after measurement showed
