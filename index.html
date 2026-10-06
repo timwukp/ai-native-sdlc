@@ -224,6 +224,7 @@
       <a href="#limits">Honest limits</a>
       <a href="#check">Self-check</a>
       <a href="#sources">Sources</a>
+      <a href="plays.html">Plays</a>
     </nav>
   </div>
 </header>
@@ -477,6 +478,7 @@
         <p>Plan commits <code>intent.md</code>; a different product owner accepts it.</p>
         <div class="qmount" data-learning-addition data-question-stage="plan"></div>
       </div>
+      <a href="plays.html#plan">Stage plays</a>
     </div>
 
     <div class="panel" role="tabpanel" id="p2" data-stage="design" aria-labelledby="t2" tabindex="0">
@@ -520,6 +522,7 @@
         <p>Design commits owner-signed <code>spec.md</code>, resolving concerns before build.</p>
         <div class="qmount" data-learning-addition data-question-stage="design"></div>
       </div>
+      <a href="plays.html#design">Stage plays</a>
     </div>
 
     <div class="panel" role="tabpanel" id="p3" data-stage="build" aria-labelledby="t3" tabindex="0">
@@ -569,6 +572,7 @@
         <p>Build accepts <code>plan.md</code> before edits, binds it to the merge base and names every touched file.</p>
         <div class="qmount" data-learning-addition data-question-stage="build"></div>
       </div>
+      <a href="plays.html#build">Stage plays</a>
     </div>
 
     <div class="panel" role="tabpanel" id="p4" data-stage="test" aria-labelledby="t4" tabindex="0">
@@ -620,6 +624,7 @@
         <p>Test commits a red-first target and <code>evals/</code>; green proves only declared checks.</p>
         <div class="qmount" data-learning-addition data-question-stage="test"></div>
       </div>
+      <a href="plays.html#test">Stage plays</a>
     </div>
 
     <div class="panel" role="tabpanel" id="p5" data-stage="deploy" aria-labelledby="t5" tabindex="0">
@@ -667,6 +672,7 @@
         <p>Deploy commits PR + <code>REVIEW.md</code>; a human merges and marks the intent <code>shipped</code>.</p>
         <div class="qmount" data-learning-addition data-question-stage="deploy"></div>
       </div>
+      <a href="plays.html#deploy">Stage plays</a>
     </div>
 
     <div class="panel" role="tabpanel" id="p6" data-stage="maintain" aria-labelledby="t6" tabindex="0">
@@ -720,6 +726,7 @@ tiers:
         <p>Maintain turns a <code>bands.yaml</code> breach into a gated new <code>intent.md</code>.</p>
         <div class="qmount" data-learning-addition data-question-stage="maintain"></div>
       </div>
+      <a href="plays.html#maintain">Stage plays</a>
     </div>
   </div>
 </section>
@@ -1014,12 +1021,7 @@ echo "&lt;slug&gt;" &gt; .sdlc/active</code></pre>
     </div>
 
     <div class="note">
-      <b>What this deliberately does not cover.</b> The playbook contains plays with no
-      counterpart here or in the skill, declared so an unmapped play reads as a decision rather
-      than an omission: auto mode and staged autonomy (an agent-runtime permission setting, not a
-      repository artifact), legacy-system onboarding, recurring security scans (an ops control
-      that runs whether or not a change is in flight), and Claude on call. Managed settings appear
-      only as the named non-overridable tier an enterprise must supply from outside the repository.
+      <b>What this deliberately does not cover.</b> Out of scope: <a data-oos="auto-mode" href="plays.html#auto-mode">auto mode</a>, <a data-oos="claude-md" href="plays.html#claude-md">CLAUDE.md</a>, <a data-oos="parallel-sessions" href="plays.html#parallel-sessions">parallel sessions</a>, <a data-oos="closing-loop" href="plays.html#closing-loop">closing the loop</a>, <a data-oos="recurring-scans" href="plays.html#recurring-scans">recurring security scans</a>, <a data-oos="claude-tag" href="plays.html#claude-tag">Claude on call</a>. Cross-cutting: <i data-crosscut="legacy-systems">legacy-system onboarding</i>, <i data-crosscut="managed-settings">managed settings</i>.
     </div>
   </div>
 </section>

@@ -25,8 +25,12 @@ Exit 0 = all checks pass.
 
 from __future__ import annotations
 
+import argparse
+import base64
+import hashlib
 import pathlib
 import re
+import subprocess
 import sys
 from html.parser import HTMLParser
 
@@ -249,14 +253,20 @@ def figure_checks(
     check(f"{label}: no external reference", not ext, f"found {ext}")
 
 
+QUIET = False
+
+
 def check(name: str, cond: bool, detail: str = "") -> None:
     global CHECKS
     CHECKS += 1
+    if not cond:
+        FAILURES.append(name)
+    if QUIET:
+        return
     if cond:
         print(f"  ok   {name}")
     else:
         print(f"  FAIL {name}{(' — ' + detail) if detail else ''}")
-        FAILURES.append(name)
 
 
 def checked_text(path: pathlib.Path, label: str) -> str:
@@ -829,7 +839,760 @@ def learning_mode_checks(html: str, page: Page) -> None:
     )
 
 
+# ---------------------------------------------------------------------------------------------
+# Play catalogue (plays.html), its links from index.html, and the source-overlap ratchet.
+# Every constant below is copied from the signed-off spec for intent/playbook-play-coverage.
+
+PLAYS_PAGE = HERE / "plays.html"
+PLAYS_BUDGET = 55_000
+SOURCE_URL = "https://claude.com/blog/the-ai-native-sdlc-playbook"
+SOURCE_DATE = "2026-08-21"
+SOURCE_SHINGLES = HERE / "evals" / "source-shingles.txt"
+OVERLAP_BASELINE = HERE / "evals" / "index-source-overlap-baseline.txt"
+BASELINE_REF = "514366c8b9d99e38b7fa17e4547ce61e9c713581"
+WINDOW = 8
+NOT_STATED = "Not stated in the source"
+OOS = "declared out of scope"
+STATUSES = ("implemented", "partial", OOS)
+FIELDS = ("summary", "prerequisites", "governance", "leading", "lagging", "status", "evidence")
+
+# id, stage, source play name, status, evidence paths (globs allowed)
+PLAYS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
+    ("capture-intent", "plan", "Capture as intent.md", "implemented", ("intent/", ".sdlc/active")),
+    ("requirements-design", "design", "Requirements and design", "partial", ("intent/*/spec.md",)),
+    ("plan-mode", "build", "Claude Code plan mode as the default starting point", "implemented",
+     ("intent/*/plan.md", ".github/workflows/sdlc-gate.yml")),
+    ("auto-mode", "build", "Claude Code on auto mode", OOS, ()),
+    ("claude-md", "build", "The CLAUDE.md", OOS, ()),
+    ("skills", "build", "Skills as institutional knowledge", "partial", ("README.md",)),
+    ("build-hooks", "build", "Hooks as build-time guardrails", "implemented",
+     (".kiro/hooks/privacy-scan.json", "scripts/privacy_pretooluse_hook.py")),
+    ("parallel-sessions", "build", "Parallel sessions and subagents", OOS, ()),
+    ("feedback-loop", "test", "Give Claude a feedback loop", "implemented",
+     ("verify.py", ".github/workflows/portal-verify.yml")),
+    ("continuous-evals", "test", "Continuous evals in CI", "partial",
+     ("scripts/privacy_mutation_proof.py", ".github/workflows/portal-verify.yml")),
+    ("pr-review", "deploy", "AI in the PR review loop", "partial",
+     (".github/pull_request_template.md", ".github/workflows/sdlc-gate.yml")),
+    ("approval-hooks", "deploy", "Hooks as approval gates", "partial", (".githooks/pre-push",)),
+    ("cicd", "deploy", "CI/CD integration and deployment", "partial", (".github/workflows/",)),
+    ("closing-loop", "maintain", "Closing the loop", OOS, ()),
+    ("recurring-scans", "maintain", "Recurring codebase scans", OOS, ()),
+    ("claude-tag", "maintain", "Claude on call with Claude Tag", OOS, ()),
+)
+PLAY_IDS = tuple(p[0] for p in PLAYS)
+OOS_IDS = frozenset(p[0] for p in PLAYS if p[3] == OOS)
+
+
+def _edges(play: str, required: str, helps: str) -> set[tuple[str, str, str]]:
+    out = {(src, play, "required") for src in required.split()}
+    return out | {(src, play, "helps") for src in helps.split()}
+
+
+# Edge = (prerequisite, dependent play, kind), from each play's Prerequisites paragraph.
+EDGES: frozenset[tuple[str, str, str]] = frozenset().union(
+    _edges("requirements-design", "capture-intent skills", ""),
+    _edges("plan-mode", "", "capture-intent requirements-design claude-md"),
+    _edges("skills", "", "claude-md"),
+    _edges("parallel-sessions", "claude-md", "feedback-loop"),
+    _edges("continuous-evals", "claude-md feedback-loop", ""),
+    _edges("pr-review", "claude-md", "skills parallel-sessions"),
+    _edges("cicd", "pr-review approval-hooks", ""),
+    _edges("closing-loop", "capture-intent pr-review approval-hooks cicd", ""),
+    _edges("recurring-scans", "pr-review approval-hooks capture-intent", ""),
+)
+INTERPRETIVE_EDGES = frozenset({
+    ("parallel-sessions", "pr-review", "helps"),
+    ("approval-hooks", "closing-loop", "required"),
+})
+NONE_PREREQ = frozenset({"capture-intent", "claude-md", "feedback-loop", "approval-hooks"})
+NO_SOURCE_SECTION = frozenset({"auto-mode", "build-hooks", "claude-tag"})
+CROSSCUTS = ("legacy-systems", "managed-settings")
+GLOSSARY_SLUGS = (
+    "intent", "spec", "plan", "play", "gate", "control-band", "hook", "skill", "subagent",
+    "worktree", "eval", "mcp", "managed-settings", "merge-base",
+)
+TERMINOLOGY = (
+    "CLAUDE.md", ".claude/skills/", ".claude/settings.json hooks", ".claude/agents/",
+    "REVIEW.md", "bands.yaml", "evals/", "managed settings",
+)
+VOID = frozenset("area base br col embed hr img input link meta param source track wbr".split())
+
+
+class Tree(HTMLParser):
+    """Element tree with per-element visible text, enough to scope checks to one element."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.nodes: list[dict] = []
+        self._stack: list[int] = []
+        self._suppress = 0
+
+    def _add(self, tag: str, attrs: list[tuple[str, str | None]]) -> int:
+        parent = self._stack[-1] if self._stack else -1
+        self.nodes.append({"tag": tag, "attrs": {k: (v or "") for k, v in attrs},
+                           "parent": parent, "text": []})
+        return len(self.nodes) - 1
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        i = self._add(tag, attrs)
+        if tag in VOID:
+            return
+        self._stack.append(i)
+        if tag in ("script", "style"):
+            self._suppress += 1
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._add(tag, attrs)
+
+    def handle_endtag(self, tag: str) -> None:
+        for depth in range(len(self._stack) - 1, -1, -1):
+            if self.nodes[self._stack[depth]]["tag"] == tag:
+                for j in self._stack[depth:]:
+                    if self.nodes[j]["tag"] in ("script", "style") and self._suppress:
+                        self._suppress -= 1
+                del self._stack[depth:]
+                return
+
+    def handle_data(self, data: str) -> None:
+        if not self._suppress:
+            for i in self._stack:
+                self.nodes[i]["text"].append(data)
+
+    def attrs(self, i: int) -> dict[str, str]:
+        return self.nodes[i]["attrs"]
+
+    def text(self, i: int) -> str:
+        return re.sub(r"\s+", " ", "".join(self.nodes[i]["text"])).strip()
+
+    def ancestors(self, i: int) -> list[int]:
+        out = []
+        while (i := self.nodes[i]["parent"]) != -1:
+            out.append(i)
+        return out
+
+    def within(self, i: int) -> list[int]:
+        out = []
+        for j in range(i + 1, len(self.nodes)):
+            if i not in self.ancestors(j):
+                break
+            out.append(j)
+        return out
+
+    def find(self, **want: str) -> list[int]:
+        return [i for i, n in enumerate(self.nodes)
+                if all(n["tag"] == v if k == "tag" else n["attrs"].get(k) == v
+                       for k, v in want.items())]
+
+
+def parse_tree(html: str) -> Tree:
+    t = Tree()
+    t.feed(html)
+    return t
+
+
+def repo_path_exists(path: str) -> bool:
+    if any(c in path for c in "*?["):
+        return any(HERE.glob(path))
+    return (HERE / path).exists()
+
+
+def normalised_words(text: str) -> list[str]:
+    return re.sub(r"[\W_]+", " ", text.casefold()).split()
+
+
+def digest(data: bytes) -> str:
+    """SHA-256 as lowercase unpadded base32 (52 characters).
+
+    Hex is not used: its digit runs match the privacy scan's payment-card rule.
+    """
+    return base64.b32encode(hashlib.sha256(data).digest()).decode("ascii").rstrip("=").lower()
+
+
+def windows(text: str) -> list[tuple[str, str]]:
+    """Every eight-word window of visible text, as (sha256 base32, words)."""
+    words = normalised_words(text)
+    out = []
+    for k in range(len(words) - WINDOW + 1):
+        w = " ".join(words[k:k + WINDOW])
+        out.append((digest(w.encode("utf-8")), w))
+    return out
+
+
+def visible_text(html: str) -> str:
+    p = Page()
+    p.feed(html)
+    return p.text
+
+
+def read_fixture(text: str) -> tuple[dict[str, str], list[str], list[str]]:
+    """Header ('# key: value'), hash lines, and any line that is neither."""
+    header: dict[str, str] = {}
+    hashes: list[str] = []
+    bad: list[str] = []
+    for line in text.splitlines():
+        if line.startswith("#"):
+            m = re.match(r"#\s*([a-z-]+):\s*(.*)$", line)
+            if m:
+                header[m.group(1)] = m.group(2).strip()
+        elif re.fullmatch(r"[a-z2-7]{52}", line):
+            hashes.append(line)
+        elif line.strip():
+            bad.append(line[:40])
+    return header, hashes, bad
+
+
+def play_catalogue_checks(html: str) -> dict[str, int]:
+    """Spec 1, 3, 5-18, 20-21 against plays.html. An absent page fails every check by name."""
+    ok = bool(html)
+    t = parse_tree(html)
+    tags = [n["tag"] for n in t.nodes]
+    style = " ".join(re.findall(r"<style[^>]*>(.*?)</style>", html, re.S))
+    hrefs = [t.attrs(i).get("href", "") for i in t.find(tag="a")]
+    size = len(html.encode("utf-8"))
+
+    check("plays: plays.html exists", ok, "not found beside index.html")
+    check(f"plays: page is within the {PLAYS_BUDGET:,}-byte budget",
+          ok and size <= PLAYS_BUDGET, f"page is {size:,} bytes")
+
+    # isolation (spec 1)
+    srcs = [n["attrs"]["src"] for n in t.nodes if "src" in n["attrs"]]
+    check("plays: no script element", ok and "script" not in tags)
+    check("plays: no external src, stylesheet, @import or url()", ok and not srcs
+          and not any(t.attrs(i).get("rel", "").casefold() == "stylesheet" for i in t.find(tag="link"))
+          and "@import" not in html and not re.search(r"url\(\s*['\"]?https?:", html),
+          f"src={srcs[:3]}")
+    ext = [h for h in hrefs if h.startswith(("http://", "https://"))]
+    bad_ext = [h for h in ext if not re.match(r"https://(claude\.com|github\.com)/", h)]
+    check("plays: external links are limited to the two sources", ok and not bad_ext,
+          f"unexpected={bad_ext[:3]}")
+
+    # structure and accessibility (spec 3, 20)
+    html_tags = t.find(tag="html")
+    check("plays: html lang is en", ok and bool(html_tags) and t.attrs(html_tags[0]).get("lang") == "en")
+    check("plays: viewport meta tag", ok and bool(t.find(tag="meta", name="viewport")))
+    check("plays: prefers-reduced-motion rule", ok and "prefers-reduced-motion" in style)
+    check("plays: print rule", ok and "@media print" in style)
+    check("plays: 44px touch-target rule", ok and "44px" in style)
+    check("plays: exactly one h1", ok and tags.count("h1") == 1, f"found {tags.count('h1')}")
+    levels = [int(tg[1]) for tg in tags if re.fullmatch(r"h[1-6]", tg)]
+    check("plays: no skipped heading level",
+          ok and bool(levels) and levels[0] == 1
+          and all(b <= a + 1 for a, b in zip(levels, levels[1:])), f"levels={levels[:12]}")
+    focusable = [i for i, n in enumerate(t.nodes)
+                 if (n["tag"] == "a" and "href" in n["attrs"])
+                 or n["tag"] in ("button", "input", "select", "textarea")
+                 or n["attrs"].get("tabindex", "-1") not in ("-1", "")]
+    first = t.attrs(focusable[0]).get("href", "") if focusable else ""
+    all_ids = [n["attrs"]["id"] for n in t.nodes if "id" in n["attrs"]]
+    check("plays: skip link is the first focusable element",
+          ok and first.startswith("#") and first[1:] in all_ids
+          and "skip" in t.text(focusable[0]).casefold(), f"first={first!r}")
+    dupes = sorted({i for i in all_ids if all_ids.count(i) > 1})
+    check("plays: no duplicate id", ok and not dupes, f"duplicated: {dupes}")
+    back = [f"index.html#p{n}" for n in range(1, 7)]
+    check("plays: links back to index.html and each stage panel",
+          ok and "index.html" in hrefs and all(b in hrefs for b in back),
+          f"missing={[b for b in back if b not in hrefs]}")
+    check("plays: no <pre> block reproduces a source code sample", ok and "pre" not in tags)
+    tables = t.find(tag="table")
+    unscrolled = [i for i in tables if not any(
+        t.attrs(a).get("tabindex") == "0" and t.attrs(a).get("role") == "region"
+        and (t.attrs(a).get("aria-label") or t.attrs(a).get("aria-labelledby"))
+        for a in t.ancestors(i))]
+    check("plays: every table sits in a labelled, focusable scroll region",
+          ok and bool(tables) and not unscrolled, f"{len(unscrolled)} of {len(tables)} unscrolled")
+
+    # stage sections (spec 6)
+    sections = [i for i in t.find(tag="section") if t.attrs(i).get("id") in LEARNING_STAGES]
+    check("plays: six stage sections in canonical order",
+          ok and tuple(t.attrs(i)["id"] for i in sections) == LEARNING_STAGES,
+          f"found {[t.attrs(i)['id'] for i in sections]}")
+    unattributed = [t.attrs(i)["id"] for i in sections if not any(
+        SOURCE_URL in t.attrs(j).get("href", "") for j in t.within(i))]
+    check("plays: every stage section links the source", ok and len(sections) == 6
+          and not unattributed, f"unattributed={unattributed}")
+
+    # closed play set (spec 5)
+    articles = t.find(tag="article")
+    art_ids = tuple(t.attrs(i).get("id", "") for i in articles)
+    check("plays: exactly the 16 play ids in spec order", ok and art_ids == PLAY_IDS,
+          f"found {len(art_ids)}: {[a for a in art_ids if a not in PLAY_IDS][:3]} extra, "
+          f"{[p for p in PLAY_IDS if p not in art_ids][:3]} missing")
+    by_id = {t.attrs(i).get("id", ""): i for i in articles}
+
+    offenders: dict[str, list[str]] = {k: [] for k in (
+        "data-play", "stage", "heading", "fields", "status", "visible", "evidence-set",
+        "evidence-exists", "evidence-visible", "gap", "reason", "prereq", "marker", "summary")}
+    statuses: dict[str, int] = {s: 0 for s in STATUSES}
+    for pid, stage, name, status, evidence in PLAYS:
+        i = by_id.get(pid)
+        if i is None:
+            for k in offenders:
+                offenders[k].append(pid)
+            continue
+        a = t.attrs(i)
+        inner = t.within(i)
+        if a.get("data-play") != pid:
+            offenders["data-play"].append(pid)
+        section = next((s for s in t.ancestors(i) if t.nodes[s]["tag"] == "section"), -1)
+        if a.get("data-stage") != stage or section == -1 or t.attrs(section).get("id") != stage:
+            offenders["stage"].append(pid)
+        heads = [j for j in inner if re.fullmatch(r"h[2-6]", t.nodes[j]["tag"])]
+        if not heads or t.text(heads[0]) != name:
+            offenders["heading"].append(pid)
+        field_nodes: dict[str, int] = {}
+        order = []
+        for j in inner:
+            f = t.attrs(j).get("data-field")
+            if f:
+                order.append(f)
+                field_nodes.setdefault(f, j)
+        if [f for f in order if f in FIELDS] != list(FIELDS):
+            offenders["fields"].append(pid)
+        ftext = {f: t.text(j) for f, j in field_nodes.items()}
+        st = field_nodes.get("status")
+        got = t.attrs(st).get("data-status") if st is not None else None
+        if got != status:
+            offenders["status"].append(pid)
+        elif status in STATUSES:
+            statuses[status] += 1
+        if st is None or status not in ftext.get("status", "").casefold():
+            offenders["visible"].append(pid)
+        ev = field_nodes.get("evidence")
+        paths = t.attrs(ev).get("data-evidence", "").split() if ev is not None else []
+        if set(paths) != set(evidence):
+            offenders["evidence-set"].append(pid)
+        if status != OOS and (not paths or not all(repo_path_exists(p) for p in paths)):
+            offenders["evidence-exists"].append(pid)
+        if not all(p in ftext.get("evidence", "") for p in paths):
+            offenders["evidence-visible"].append(pid)
+        if status == "partial" and not ftext.get("gap"):
+            offenders["gap"].append(pid)
+        if status == OOS and not ftext.get("reason"):
+            offenders["reason"].append(pid)
+        if not ftext.get("summary"):
+            offenders["summary"].append(pid)
+        pre = field_nodes.get("prerequisites")
+        links = {t.attrs(j).get("href", "")[1:] for j in (t.within(pre) if pre is not None else [])
+                 if t.nodes[j]["tag"] == "a" and t.attrs(j).get("href", "").startswith("#")}
+        incoming = {src for src, dst, _ in EDGES if dst == pid}
+        pre_text = ftext.get("prerequisites", "")
+        if pid in NONE_PREREQ:
+            good = pre_text == "None" and not links
+        elif pid in NO_SOURCE_SECTION:
+            good = pre_text == NOT_STATED and not links
+        else:
+            good = links == incoming
+        if not good:
+            offenders["prereq"].append(pid)
+        for f in ("governance", "leading", "lagging"):
+            marked = ftext.get(f) == NOT_STATED
+            expect = pid in NO_SOURCE_SECTION and not (pid == "claude-tag" and f == "governance")
+            if marked != expect or not ftext.get(f):
+                offenders["marker"].append(f"{pid}.{f}")
+
+    for key, label in (
+        ("data-play", "every entry's data-play equals its id"),
+        ("stage", "every entry's data-stage matches the spec and its section"),
+        ("heading", "every entry's heading is the source play name"),
+        ("fields", "every entry has the seven fields in order"),
+        ("status", "every status matches the spec table"),
+        ("visible", "every status word is visible text"),
+        ("evidence-set", "every entry's evidence equals the spec table"),
+        ("evidence-exists", "every evidence path exists"),
+        ("evidence-visible", "every evidence path is visible text"),
+        ("gap", "every partial entry names its gap"),
+        ("reason", "every out-of-scope entry states a reason"),
+        ("summary", "every entry has a summary"),
+        ("prereq", "every entry's prerequisite links equal its incoming edges"),
+        ("marker", "'Not stated in the source' appears exactly where the source is silent"),
+    ):
+        check(f"plays: {label}", ok and not offenders[key], f"offenders={offenders[key][:5]}")
+    check("plays: status totals are 4 implemented, 6 partial, 6 out of scope",
+          ok and statuses == {"implemented": 4, "partial": 6, OOS: 6}, f"{statuses}")
+
+    # out-of-scope section and cross-cutting notes (spec 5, 11)
+    oos_node = t.find(id="out-of-scope")
+    oos_links = {t.attrs(j).get("href", "")[1:] for j in (t.within(oos_node[0]) if oos_node else [])
+                 if t.nodes[j]["tag"] == "a" and t.attrs(j).get("href", "").startswith("#")}
+    oos_status = {t.attrs(i).get("id") for i in articles for j in t.within(i)
+                  if t.attrs(j).get("data-status") == OOS}
+    check("plays: #out-of-scope lists exactly the out-of-scope entries",
+          ok and oos_links == OOS_IDS == oos_status, f"links={sorted(oos_links)}")
+    cross = [i for i, n in enumerate(t.nodes) if "data-crosscut" in n["attrs"]]
+    cross_vals = sorted(t.attrs(i)["data-crosscut"] for i in cross)
+    check("plays: the two cross-cutting notes appear once each, outside any play",
+          ok and cross_vals == sorted(CROSSCUTS)
+          and not any(t.nodes[a]["tag"] == "article" for i in cross for a in [i, *t.ancestors(i)]),
+          f"found {cross_vals}")
+
+    # dependency list and figure (spec 13-15)
+    dep = t.find(id="dependency-list")
+    li_edges = [t.attrs(j)["data-edge"] for j in (t.within(dep[0]) if dep else [])
+                if t.nodes[j]["tag"] == "li" and "data-edge" in t.attrs(j)]
+    list_set = {tuple(e.split()) for e in li_edges}
+    check("plays: dependency list equals the spec edge table",
+          ok and len(li_edges) == len(list_set) and list_set == EDGES,
+          f"{len(li_edges)} listed; missing={sorted(EDGES - list_set)[:2]} "
+          f"extra={sorted(list_set - EDGES)[:2]}")
+    uninterpreted = [e for e in INTERPRETIVE_EDGES
+                     if not any(tuple(t.attrs(j).get("data-edge", "").split()) == e
+                                and "interpret" in t.text(j).casefold()
+                                for j in (t.within(dep[0]) if dep else []))]
+    check("plays: the two interpretive edges are labelled as interpretive",
+          ok and not uninterpreted, f"unlabelled={uninterpreted}")
+    svgs = [i for i in t.find(tag="svg") if t.attrs(i).get("role") == "img"]
+    svg = svgs[0] if svgs else None
+    svg_in = t.within(svg) if svg is not None else []
+    fig = next((a for a in t.ancestors(svg) if t.nodes[a]["tag"] == "figure"), None) \
+        if svg is not None else None
+    check("plays: figure has role=img, title, desc and a visible caption",
+          ok and svg is not None and fig is not None
+          and any(t.nodes[j]["tag"] == "title" and t.text(j) for j in svg_in)
+          and any(t.nodes[j]["tag"] == "desc" and t.text(j) for j in svg_in)
+          and any(t.nodes[j]["tag"] == "figcaption" and t.text(j) for j in t.within(fig)))
+    groups = [j for j in svg_in if t.nodes[j]["tag"] == "g" and "data-edge" in t.attrs(j)]
+    fig_set = {tuple(t.attrs(j)["data-edge"].split()) for j in groups}
+    check("plays: figure edge set equals the dependency list",
+          ok and bool(fig_set) and fig_set == list_set and len(groups) == len(fig_set),
+          f"figure={len(groups)} list={len(list_set)}; "
+          f"figure-only={sorted(fig_set - list_set)[:2]}")
+    wrong_dash = []
+    for j in groups:
+        kind = t.attrs(j)["data-edge"].split()[-1]
+        dashed = any("stroke-dasharray" in t.attrs(k) for k in [j, *t.within(j)])
+        if dashed != (kind == "helps"):
+            wrong_dash.append(t.attrs(j)["data-edge"])
+    check("plays: figure distinguishes helps from required by dash pattern",
+          ok and bool(groups) and not wrong_dash, f"wrong={wrong_dash[:3]}")
+
+    # glossary and terminology map (spec 16-17)
+    gl = t.find(id="glossary")
+    dts = [j for j in (t.within(gl[0]) if gl else []) if t.nodes[j]["tag"] == "dt"]
+    dt_ids = [t.attrs(j).get("id", "") for j in dts]
+    dt_text = [t.text(j).casefold() for j in dts]
+    slugs = [d[5:] for d in dt_ids if d.startswith("term-")]
+    check("plays: glossary has no duplicate term",
+          ok and bool(dts) and len(slugs) == len(dts) == len(set(slugs)) == len(set(dt_text)),
+          f"{len(dts)} terms, {len(set(slugs))} unique ids")
+    check("plays: glossary defines the 14 required terms",
+          ok and all(s in slugs for s in GLOSSARY_SLUGS),
+          f"missing={[s for s in GLOSSARY_SLUGS if s not in slugs]}")
+    tm = t.find(id="terminology")
+    rows = [j for j in (t.within(tm[0]) if tm else []) if "data-term" in t.attrs(j)]
+    terms = [t.attrs(j)["data-term"] for j in rows]
+    bad_rows = []
+    for j in rows:
+        cell = next((k for k in t.within(j) if "data-counterpart" in t.attrs(k)), None)
+        value = t.attrs(cell)["data-counterpart"] if cell is not None else ""
+        if not value or value not in t.text(cell) or (
+                value != "No counterpart" and not repo_path_exists(value)):
+            bad_rows.append(t.attrs(j)["data-term"])
+    check("plays: terminology map has one row per Playbook term",
+          ok and sorted(terms) == sorted(TERMINOLOGY), f"found {terms}")
+    check("plays: every terminology row names an existing path or 'No counterpart'",
+          ok and bool(rows) and not bad_rows, f"bad={bad_rows}")
+
+    return {"plays": len(articles), "edges": len(list_set), "figure_edges": len(fig_set),
+            "glossary": len(dts), "size": size, **statuses}
+
+
+def index_play_link_checks(index_html: str, plays_html: str) -> None:
+    """Spec 2 and 12: index.html links into plays.html and names the same out-of-scope set."""
+    t = parse_tree(index_html)
+    navs = t.find(tag="nav")
+    nav_links = [j for j in (t.within(navs[0]) if navs else [])
+                 if t.attrs(j).get("href") == "plays.html"]
+    check("index plays: one header-nav link to plays.html", len(nav_links) == 1,
+          f"found {len(nav_links)}")
+    unlinked = []
+    for i in (i for i, n in enumerate(t.nodes) if n["attrs"].get("role") == "tabpanel"):
+        stage = t.attrs(i).get("data-stage", "")
+        n_links = sum(1 for j in t.within(i) if t.attrs(j).get("href") == f"plays.html#{stage}")
+        if n_links != 1:
+            unlinked.append(stage)
+    check("index plays: each stage panel links its plays.html section once",
+          not unlinked, f"unlinked={unlinked}")
+    check("index plays: the 'does not cover' heading is kept",
+          "what this deliberately does not cover" in visible_text(index_html).casefold())
+    oos = [j for j, n in enumerate(t.nodes) if "data-oos" in n["attrs"]]
+    oos_ids = [t.attrs(j)["data-oos"] for j in oos]
+    bad_href = [x for j, x in zip(oos, oos_ids)
+                if t.nodes[j]["tag"] != "a" or t.attrs(j).get("href") != f"plays.html#{x}"]
+    pt = parse_tree(plays_html)
+    plays_oos = {pt.attrs(a).get("id") for a in pt.find(tag="article") for j in pt.within(a)
+                 if pt.attrs(j).get("data-status") == OOS}
+    check("index plays: data-oos set equals plays.html out-of-scope set",
+          len(oos_ids) == len(set(oos_ids)) and set(oos_ids) == OOS_IDS == plays_oos
+          and not bad_href,
+          f"index={sorted(oos_ids)} plays={sorted(x for x in plays_oos if x)} bad-href={bad_href}")
+    cross = sorted(n["attrs"]["data-crosscut"] for n in t.nodes if "data-crosscut" in n["attrs"])
+    check("index plays: the note names both cross-cutting notes", cross == sorted(CROSSCUTS),
+          f"found {cross}")
+
+
+def exempt_play_headings(html: str) -> str:
+    """Drop each entry's first heading when its text is exactly the spec play name (spec 19)."""
+    for pid, _, name, _, _ in PLAYS:
+        start = re.search(rf'<article\b[^>]*\bid="{re.escape(pid)}"', html)
+        if not start:
+            continue
+        head = re.compile(r"<(h[2-6])\b[^>]*>(.*?)</\1>", re.S).search(html, start.end())
+        if not head:
+            continue
+        text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", head.group(2))).strip()
+        if text == name:
+            html = html[:head.start()] + html[head.end():]
+    return html
+
+
+def overlap_checks(index_html: str, plays_html: str,
+                   source_text: str | None, baseline_text: str | None) -> None:
+    """Spec 19: plays.html shares no window with the source; index.html may only shrink."""
+    check("overlap: source fixture exists", source_text is not None,
+          f"missing {SOURCE_SHINGLES.relative_to(HERE)}")
+    check("overlap: baseline fixture exists", baseline_text is not None,
+          f"missing {OVERLAP_BASELINE.relative_to(HERE)}")
+    if source_text is None or baseline_text is None:
+        return
+    s_head, s_hashes, s_bad = read_fixture(source_text)
+    b_head, b_hashes, b_bad = read_fixture(baseline_text)
+    check("overlap: source fixture holds only hashes under its provenance header",
+          not s_bad and bool(s_hashes) and s_hashes == sorted(set(s_hashes))
+          and s_head.get("source") == SOURCE_URL and s_head.get("source-date") == SOURCE_DATE
+          and s_head.get("count") == str(len(s_hashes)), f"header={s_head} bad={s_bad[:2]}")
+    check("overlap: baseline fixture holds only hashes recorded at 514366c",
+          not b_bad and b_hashes == sorted(set(b_hashes)) and b_head.get("ref") == BASELINE_REF
+          and (b_head.get("count") or "").isdigit(), f"header={b_head} bad={b_bad[:2]}")
+    source = set(s_hashes)
+    baseline = set(b_hashes)
+    plays_hits = sorted({w for h, w in windows(visible_text(exempt_play_headings(plays_html)))
+                         if h in source})
+    check("overlap: plays.html shares no eight-word window with the source",
+          bool(plays_html) and not plays_hits, f"{len(plays_hits)} hits, e.g. {plays_hits[:2]}")
+    idx = windows(visible_text(index_html))
+    idx_hits = {h for h, _ in idx if h in source}
+    outside = sorted({w for h, w in idx if h in idx_hits - baseline})
+    check("overlap: every index.html source match is in the baseline", not outside,
+          f"{len(outside)} unlisted, e.g. {outside[:2]}")
+    stale = baseline - idx_hits
+    check("overlap: baseline lists no stale hash", not stale, f"{len(stale)} stale")
+    recorded = int(b_head["count"]) if (b_head.get("count") or "").isdigit() else -1
+    check("overlap: baseline is no larger than the count recorded at 514366c",
+          0 <= len(baseline) <= recorded, f"{len(baseline)} listed, header records {recorded}")
+    if not QUIET:
+        print(f"  (overlap: plays.html {len(plays_hits)} hits; index.html "
+              f"{len(outside)} outside the baseline; baseline {len(baseline)} of {recorded})")
+        seen = set()
+        for h, w in idx:
+            if h in baseline and h not in seen:
+                seen.add(h)
+                print(f"    baseline: {w}")
+
+
+def optional_text(path: pathlib.Path) -> str | None:
+    return path.read_text(encoding="utf-8") if path.is_file() else None
+
+
+def catalogue_checks(index_html: str, plays_html: str,
+                     source_text: str | None, baseline_text: str | None) -> dict[str, int]:
+    if not QUIET:
+        print(" plays")
+    stats = play_catalogue_checks(plays_html)
+    if not QUIET:
+        print(" index plays")
+    index_play_link_checks(index_html, plays_html)
+    if not QUIET:
+        print(" overlap")
+    overlap_checks(index_html, plays_html, source_text, baseline_text)
+    return stats
+
+
+def _fixture(header: list[str], hashes: list[str]) -> str:
+    return "\n".join([*header, f"# count: {len(hashes)}", *hashes]) + "\n"
+
+
+def build_source_shingles(page: pathlib.Path, fetched: str) -> int:
+    """Write evals/source-shingles.txt from a fetched copy of the source page."""
+    hashes = sorted({h for h, _ in windows(visible_text(page.read_text(encoding="utf-8")))})
+    SOURCE_SHINGLES.parent.mkdir(exist_ok=True)
+    SOURCE_SHINGLES.write_text(_fixture([
+        "# SHA-256 (lowercase base32) of every eight-word window of the source's visible",
+        "# text. Hashes only; the source prose is not redistributed here.",
+        f"# source: {SOURCE_URL}",
+        f"# source-date: {SOURCE_DATE}",
+        f"# fetched: {fetched}",
+        f"# command: python3 verify.py --build-source-shingles <fetched page> --fetched {fetched}",
+    ], hashes), encoding="utf-8")
+    print(f"wrote {len(hashes)} source hashes")
+    return 0
+
+
+def build_overlap_baseline() -> int:
+    """Write evals/index-source-overlap-baseline.txt from index.html at BASELINE_REF."""
+    source = set(read_fixture(SOURCE_SHINGLES.read_text(encoding="utf-8"))[1])
+    old = subprocess.run(["git", "show", f"{BASELINE_REF}:index.html"], cwd=HERE,
+                         capture_output=True, text=True, check=True).stdout
+    hashes = sorted({h for h, _ in windows(visible_text(old)) if h in source})
+    OVERLAP_BASELINE.write_text(_fixture([
+        "# SHA-256 (lowercase base32) of eight-word windows index.html already shared with the",
+        "# source at the ref below. The list may only shrink: stale entries fail, and so does",
+        "# growth past count.",
+        f"# ref: {BASELINE_REF}",
+        "# command: python3 verify.py --build-overlap-baseline",
+    ], hashes), encoding="utf-8")
+    print(f"wrote {len(hashes)} baseline hashes")
+    return 0
+
+
+def _swap(text: str, pattern: str, repl, count: int = 1) -> str | None:
+    """Apply one anchored edit, or None when the anchor is absent (the mutant is BROKEN)."""
+    new, n = re.subn(pattern, repl, text, count=count, flags=re.S)
+    return new if n else None
+
+
+def _baseline_words(inp: dict) -> list[tuple[str, str]]:
+    baseline = set(read_fixture(inp["baseline"] or "")[1])
+    seen: dict[str, str] = {}
+    for h, w in windows(visible_text(inp["index"])):
+        if h in baseline:
+            seen.setdefault(h, w)
+    return sorted(seen.items(), key=lambda x: x[1])
+
+
+def _mut_stale(inp: dict) -> dict | None:
+    for h, w in _baseline_words(inp):
+        words = w.split()
+        pattern = r"(?i)\b" + r"[\W_]+".join(map(re.escape, words)) + r"\b"
+        new = re.sub(pattern, lambda m: m.group(0).replace(words[4], "zzqxmutant", 1),
+                     inp["index"])
+        if new != inp["index"] and h not in {x for x, _ in windows(visible_text(new))}:
+            return {**inp, "index": new}
+    return None
+
+
+def _mut_unlisted(inp: dict) -> dict | None:
+    words = _baseline_words(inp)
+    if not words:
+        return None
+    drop = words[0][0]
+    lines = [ln for ln in (inp["baseline"] or "").splitlines() if ln != drop]
+    return {**inp, "baseline": "\n".join(lines) + "\n"}
+
+
+def _mut_extra_hash(inp: dict) -> dict | None:
+    if not inp["baseline"]:
+        return None
+    head, hashes, _ = read_fixture(inp["baseline"])
+    extra = digest(b"verify.py mutation: extra baseline hash")
+    body = [ln for ln in inp["baseline"].splitlines() if ln.startswith("#")]
+    return {**inp, "baseline": "\n".join(body + sorted(hashes + [extra])) + "\n"}
+
+
+def _mut_paste_plays(inp: dict) -> dict | None:
+    words = _baseline_words(inp)
+    new = _swap(inp["plays"], r"</main>", f"<p>{words[0][1]}</p></main>") if words else None
+    return {**inp, "plays": new} if new else None
+
+
+def _mut_paste_heading(inp: dict) -> dict | None:
+    """A heading that is more than its play name loses the spec 19 exemption."""
+    words = _baseline_words(inp)
+    pattern = r'(<article\b[^>]*\bid="capture-intent"[^>]*>\s*<h3>.*?)(</h3>)'
+    new = _swap(inp["plays"], pattern, rf"\1 {words[0][1]}\2") if words else None
+    return {**inp, "plays": new} if new else None
+
+
+def _on(key: str, pattern: str, repl) -> object:
+    def apply(inp: dict) -> dict | None:
+        new = _swap(inp[key], pattern, repl)
+        return {**inp, key: new} if new is not None else None
+    return apply
+
+
+MUTATIONS = (
+    ("delete one entry", "plays: exactly the 16 play ids in spec order",
+     _on("plays", r'<article\b[^>]*\bid="skills"[^>]*>.*?</article>', "")),
+    ("invent one entry", "plays: exactly the 16 play ids in spec order",
+     _on("plays", r'(<section\b[^>]*\bid="build"[^>]*>)',
+         r'\1<article id="invented-play" data-play="invented-play" data-stage="build">'
+         r'<h3>Invented play</h3></article>')),
+    ("implemented evidence path points at a missing file", "plays: every evidence path exists",
+     _on("plays", r'data-evidence="verify\.py', 'data-evidence="verify-missing.py')),
+    ("drop one data-oos link", "index plays: data-oos set equals plays.html out-of-scope set",
+     _on("index", r'<a\b[^>]*\bdata-oos="claude-tag"[^>]*>(.*?)</a>', r"\1")),
+    ("add one edge to the figure only", "plays: figure edge set equals the dependency list",
+     _on("plays", r"</svg>", '<g data-edge="skills capture-intent helps" stroke-dasharray="4 3">'
+         '<line x1="0" y1="0" x2="1" y2="1"/></g></svg>')),
+    ("duplicate one glossary term", "plays: glossary has no duplicate term",
+     _on("plays", r'(<dt\b[^>]*\bid="term-hook"[^>]*>.*?</dt>)', r"\1\1")),
+    ("paste an eight-word source window into plays.html",
+     "overlap: plays.html shares no eight-word window with the source", _mut_paste_plays),
+    ("append a source window to a play heading",
+     "overlap: plays.html shares no eight-word window with the source", _mut_paste_heading),
+    ("index.html source window missing from the baseline",
+     "overlap: every index.html source match is in the baseline", _mut_unlisted),
+    ("add one extra hash to the baseline",
+     "overlap: baseline is no larger than the count recorded at 514366c", _mut_extra_hash),
+    ("leave a stale hash after its index.html text is removed",
+     "overlap: baseline lists no stale hash", _mut_stale),
+)
+
+
+def _run_quiet(inp: dict) -> list[str]:
+    global CHECKS, QUIET
+    saved = (FAILURES[:], CHECKS, QUIET)
+    FAILURES.clear()
+    QUIET = True
+    try:
+        catalogue_checks(inp["index"], inp["plays"], inp["source"], inp["baseline"])
+        return FAILURES[:]
+    finally:
+        FAILURES[:] = saved[0]
+        CHECKS, QUIET = saved[1], saved[2]
+
+
+def run_mutations() -> int:
+    """Spec 24: every mutant must turn its named check red. Nothing is written to the tree."""
+    inp = {"index": PAGE.read_text(encoding="utf-8"),
+           "plays": PLAYS_PAGE.read_text(encoding="utf-8") if PLAYS_PAGE.is_file() else "",
+           "source": optional_text(SOURCE_SHINGLES), "baseline": optional_text(OVERLAP_BASELINE)}
+    clean = _run_quiet(inp)
+    print(f"mutation proof: unmutated catalogue checks fail {len(clean)}")
+    killed = 0
+    for name, finding, mutate in MUTATIONS:
+        mutant = mutate(inp)
+        if mutant is None:
+            verdict = "BROKEN (anchor missing)"
+        elif finding in clean:
+            verdict = "INVALID (finding already red unmutated)"
+        elif finding in _run_quiet(mutant):
+            verdict = "killed"
+            killed += 1
+        else:
+            verdict = "SURVIVED"
+        print(f"  {verdict:<40} {name}  [{finding}]")
+    print(f"{killed}/{len(MUTATIONS)} mutants killed")
+    return 0 if killed == len(MUTATIONS) and not clean else 1
+
+
 def main() -> int:
+    ap = argparse.ArgumentParser(allow_abbrev=False)
+    ap.add_argument("--mutations", action="store_true")
+    ap.add_argument("--build-source-shingles", metavar="FILE", type=pathlib.Path)
+    ap.add_argument("--fetched", metavar="YYYY-MM-DD")
+    ap.add_argument("--build-overlap-baseline", action="store_true")
+    args = ap.parse_args()
+    if args.build_source_shingles:
+        if not args.fetched:
+            ap.error("--build-source-shingles needs --fetched")
+        return build_source_shingles(args.build_source_shingles, args.fetched)
+    if args.build_overlap_baseline:
+        return build_overlap_baseline()
+    if args.mutations:
+        return run_mutations()
+
     print("portal verification")
 
     # Absence is a FINDING, not a crash: this is the state the target was written in.
@@ -947,6 +1710,13 @@ def main() -> int:
     check(f"page is within the {PAGE_BUDGET:,}-byte budget", size <= PAGE_BUDGET,
           f"page is {size:,} bytes")
     print(f"  (page size = {size:,} bytes of {PAGE_BUDGET:,})")
+
+    stats = catalogue_checks(raw, optional_text(PLAYS_PAGE) or "",
+                             optional_text(SOURCE_SHINGLES), optional_text(OVERLAP_BASELINE))
+    print(f"  (plays: {stats['plays']} entries; {stats['implemented']} implemented, "
+          f"{stats['partial']} partial, {stats[OOS]} out of scope; {stats['edges']} edges, "
+          f"{stats['figure_edges']} in figure; {stats['glossary']} glossary terms; "
+          f"{stats['size']:,} of {PLAYS_BUDGET:,} bytes)")
 
     print()
     print(f"{CHECKS} checks, {len(FAILURES)} failed")

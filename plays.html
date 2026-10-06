@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play catalogue — AI-Native SDLC portal</title>
+<meta name="description" content="All 16 plays of the AI-native SDLC Playbook, paraphrased, with prerequisites, governance, indicators and this repository's status for each.">
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#151b23; --bg3:#1c2430; --line:#303b4a;
+    --fg:#e9eff5; --dim:#b3c2d2; --dim2:#93a4b7;
+    --acc:#7fb3ff; --acc2:#8ee8ca; --warn:#ffc078; --bad:#ff9b9b; --good:#8ce99a;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --page-gutter:16px; --measure:70ch; --touch-target:44px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased;overflow-wrap:anywhere}
+  a{color:var(--acc)}
+  a:focus-visible,.table-scroll:focus-visible{outline:3px solid var(--acc2);outline-offset:2px;border-radius:3px}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 var(--page-gutter)}
+  code{font-family:var(--mono);font-size:.9em;background:var(--bg3);padding:.12em .38em;border-radius:4px}
+  h1,h2,h3{line-height:1.25;letter-spacing:-.01em}
+  h2{font-size:1.6rem;margin:0 0 .3em}
+  h3{font-size:1.14rem;margin:0 0 .5em}
+  .lede{color:var(--dim);font-size:1.05rem;max-width:var(--measure)}
+  .skip{position:absolute;left:-9999px}
+  .skip:focus{left:20px;top:10px;z-index:9;background:var(--acc);color:#06121f;padding:8px 14px;border-radius:6px}
+  header.site{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#111823,#0d1117)}
+  .brand{padding:18px 0 6px}
+  .brand b{font-size:1.1rem;letter-spacing:-.02em}
+  .brand span{color:var(--dim2);font-size:.85rem}
+  nav.top{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;padding-bottom:16px;font-size:.9rem}
+  nav.top a,.jump a,.back a,#out-of-scope li a{min-height:var(--touch-target);display:inline-flex;align-items:center}
+  nav.top a{color:var(--dim);text-decoration:none}
+  nav.top a:hover{color:var(--fg);text-decoration:underline}
+  .hero{padding-block:clamp(32px,7vw,44px) 8px}
+  .hero h1{font-size:clamp(1.8rem,4.2vw,2.6rem);margin:0 0 .5em;max-width:28ch}
+  section{padding:clamp(36px,6vw,48px) 0;border-top:1px solid var(--line)}
+  section>.wrap>p{max-width:var(--measure)}
+  article{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px;margin:18px 0 0}
+  dl{margin:0;display:grid;gap:4px 16px}
+  dt{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--dim2);margin-top:8px}
+  dd{margin:0;color:var(--dim);font-size:.94rem;max-width:var(--measure)}
+  .st{display:inline-block;font-weight:700;font-size:.84rem;padding:2px 10px;border-radius:999px;border:1px solid var(--line)}
+  .st.implemented{color:var(--good);border-color:#3c7a56}
+  .st.partial{color:var(--warn);border-color:#7a6234}
+  .st.oos{color:var(--bad);border-color:#7a4a4a}
+  .st::before{content:"● "}
+  .st.partial::before{content:"◐ "}
+  .st.oos::before{content:"○ "}
+  .src{font-size:.86rem;color:var(--dim2);margin-top:20px}
+  .back{font-size:.9rem;margin:6px 0 0}
+  .jump{display:flex;flex-wrap:wrap;gap:0 16px;font-size:.9rem}
+  .note{border-left:3px solid var(--acc2);background:var(--bg2);padding:12px 15px;border-radius:0 8px 8px 0;margin:16px 0 0;max-width:var(--measure)}
+  .note h3{margin:0 0 .3em;font-size:1rem}
+  .note p{margin:0;color:var(--dim);font-size:.94rem}
+  ol.edges{padding-left:1.4em;color:var(--dim);font-size:.93rem}
+  ol.edges li{margin:2px 0}
+  figure.dg{max-width:420px;margin:22px auto;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px}
+  figure.dg svg{display:block;width:100%;max-width:380px;height:auto;margin:0 auto}
+  figure.dg figcaption{margin-top:10px;font-size:.94rem;color:var(--dim)}
+  .table-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;border-radius:8px}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:.92rem}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim2);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
+  #glossary dt{font-size:.95rem;text-transform:none;letter-spacing:0;color:var(--fg);font-weight:700;margin-top:12px}
+  footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--dim2);font-size:.86rem}
+  @media(min-width:48rem){
+    :root{--page-gutter:20px}
+    nav.top{display:flex;flex-wrap:wrap;gap:4px 18px}
+    dl{grid-template-columns:11rem 1fr}
+    dt{margin-top:0;padding-top:2px}
+    #glossary dl{grid-template-columns:12rem 1fr}
+    #glossary dt{margin-top:0}
+  }
+  @media(min-width:64rem){nav.top{gap:4px 22px}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  @media print{
+    :root{--page-gutter:0px}
+    html{scroll-behavior:auto}
+    body{background:#fff;color:#111;font-size:11pt}
+    header.site{background:none;border-color:#bbb}
+    nav.top,.skip{display:none}
+    a{color:#111}
+    article,.note,figure.dg{background:#fff;border-color:#bbb;break-inside:avoid}
+    dd,dt,.lede,.src,ol.edges,figure.dg figcaption,th{color:#222}
+    .st{color:#111!important;border-color:#666!important}
+    code{background:#eee}
+    .table-scroll{overflow:visible}
+    table{min-width:0}
+    figure.dg svg rect{fill:#fff}
+    figure.dg svg text{fill:#111}
+    figure.dg svg line{stroke:#333}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand">
+      <b>AI-Native SDLC</b><br>
+      <span>Play catalogue</span>
+    </div>
+    <nav class="top" aria-label="Catalogue sections">
+      <a href="index.html">Portal home</a>
+      <a href="#plan">Plan</a>
+      <a href="#design">Design</a>
+      <a href="#build">Build</a>
+      <a href="#test">Test</a>
+      <a href="#deploy">Deploy</a>
+      <a href="#maintain">Maintain</a>
+      <a href="#out-of-scope">Out of scope</a>
+      <a href="#dependencies">Dependencies</a>
+      <a href="#glossary">Glossary</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<div class="wrap hero">
+  <h1>The sixteen plays, one entry each</h1>
+  <p class="lede">The <a href="index.html">portal</a> teaches the six stages. This page lists every
+  play in the Playbook on its own: what it changes, what to adopt first, how it is governed, how
+  you would know it worked, and how far this repository has adopted it. Every entry is a
+  paraphrase. The source has the full steps, examples and context.</p>
+  <p class="lede">Each status is judged only against files committed here:
+  <span class="st implemented">implemented</span> means the evidence files exist;
+  <span class="st partial">partial</span> names the missing piece;
+  <span class="st oos">declared out of scope</span> gives the reason. Three plays have no
+  prerequisite, governance or indicator text in the source, and their fields say
+  "Not stated in the source" rather than inventing one.</p>
+</div>
+
+<section id="plan">
+  <div class="wrap">
+    <h2>Stage 1 · Plan</h2>
+    <p>The person with the idea writes it down once, as a committed file the next stage can pick
+    up and act on.</p>
+    <p class="back"><a href="index.html#p1">Stage 1 in the portal</a></p>
+
+    <article id="capture-intent" data-play="capture-intent" data-stage="plan">
+      <h3>Capture as <code>intent.md</code></h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">The originator talks the idea through with Claude and commits the
+        outcome as <code>intent.md</code>, a short proto-spec of problem, outcome and limits. No
+        intermediary rewrites it into tickets first.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">None</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Git history on the committed file shows author and time. A
+        product owner accepts it by merging or rejects it by closing the review, and acceptance is
+        what opens Design.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Elapsed time between first discussing an idea and committing it,
+        which should drop from weeks to hours.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">How many intents get accepted, and how often one is still being
+        edited once its spec exists.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="implemented"><span class="st implemented">implemented</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="intent/ .sdlc/active">Each change starts as a
+        folder under <code>intent/</code>, and <code>.sdlc/active</code> names the one in
+        force.</dd>
+      </dl>
+    </article>
+    <p class="src">Paraphrased from <a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-native SDLC playbook</a> (Anthropic, 21 August 2026), Stage 1.</p>
+  </div>
+</section>
+
+<section id="design">
+  <div class="wrap">
+    <h2>Stage 2 · Design</h2>
+    <p>Requirements and design happen in one sitting, and policy shapes the spec while it is
+    drafted.</p>
+    <p class="back"><a href="index.html#p2">Stage 2 in the portal</a></p>
+
+    <article id="requirements-design" data-play="requirements-design" data-stage="design">
+      <h3>Requirements and design</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">One prompted session replaces two phases: Claude turns the
+        accepted intent into <code>spec.md</code> under the organisation's policy skills and lists
+        the concerns it could not resolve.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Required: <a href="#capture-intent">Capture as intent.md</a>,
+        <a href="#skills">Skills as institutional knowledge</a> (brand, security, compliance and UX
+        policy).</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Policy is enforced during drafting instead of surfacing in a
+        late review; spec, prompt and skill versions are all versioned. The product owner signs
+        off and routes each flagged concern to its policy owner.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">The gap between the two commits, intent then spec, set against the
+        old two-phase cycle.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Spec revisions that land after planning for the change has
+        begun.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="partial"><span class="st partial">partial</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="intent/*/spec.md">Every chain has a signed-off
+        <code>intent/*/spec.md</code>.</dd>
+        <dt>Gap</dt>
+        <dd data-field="gap">No brand, security or UX policy skills are committed here, so specs are
+        not skill-constrained.</dd>
+      </dl>
+    </article>
+    <p class="src">Paraphrased from <a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-native SDLC playbook</a>, Stage 2.</p>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap">
+    <h2>Stage 3 · Build</h2>
+    <p>Code waits for an accepted plan, team knowledge moves into files the agent reads, and
+    guardrails run as code rather than habit.</p>
+    <p class="back"><a href="index.html#p3">Stage 3 in the portal</a></p>
+
+    <article id="plan-mode" data-play="plan-mode" data-stage="build">
+      <h3>Claude Code plan mode as the default starting point</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Sessions open in plan mode with the approved spec. Claude reads the
+        code but edits nothing, the engineer challenges the plan until a stranger could follow it,
+        and it is committed as <code>plan.md</code> before any code.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Helps: <a href="#capture-intent">Capture as intent.md</a>,
+        <a href="#requirements-design">Requirements and design</a>,
+        <a href="#claude-md">The CLAUDE.md</a>.</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Design is reviewed while changing course only means editing a
+        document, since plan mode cannot touch files before acceptance. Who accepted each revision
+        is recorded; riskier changes go to a tech lead or architect.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">How many changes merge from the first implementation attempt, and
+        how long approval-to-merge takes.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Rework rounds per change, and whether the merged diff still agrees
+        with its plan.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="implemented"><span class="st implemented">implemented</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="intent/*/plan.md .github/workflows/sdlc-gate.yml">Plans
+        are accepted in <code>intent/*/plan.md</code> before code changes, and
+        <code>.github/workflows/sdlc-gate.yml</code> checks coverage at merge. Whether a session
+        really ran in plan mode is a runtime fact the repository cannot show.</dd>
+      </dl>
+    </article>
+
+    <article id="auto-mode" data-play="auto-mode" data-stage="build">
+      <h3>Claude Code on auto mode</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Once the plan is approved, Claude applies edits without asking each
+        time. As the other guardrails mature this becomes normal for routine, well-tested work, and
+        review shifts from watching edits to reading what a long session produced.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Not stated in the source</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Not stated in the source</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Not stated in the source</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Not stated in the source</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="declared out of scope"><span class="st oos">declared out of scope</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="">None; see the reason.</dd>
+        <dt>Reason</dt>
+        <dd data-field="reason">An agent-runtime permission setting, not a repository artifact.</dd>
+      </dl>
+    </article>
+
+    <article id="claude-md" data-play="claude-md" data-stage="build">
+      <h3>The <code>CLAUDE.md</code></h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">One file tells the agent what a newcomer would need on day one:
+        conventions, commands, architecture and recurring mistakes. The team edits it each time the
+        agent gets something wrong.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">None</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Being versioned, the agent's standing instructions can be
+        reviewed and audited; edits appear in history and code owners approve them through
+        review.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">How often the agent repeats a mistake the file was meant to
+        prevent.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">How long a new team member takes to merge a first change.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="declared out of scope"><span class="st oos">declared out of scope</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="">None; see the reason.</dd>
+        <dt>Reason</dt>
+        <dd data-field="reason">This repository commits no agent-context file. Adopting one is its
+        own intent, not a status fix.</dd>
+      </dl>
+    </article>
+
+    <article id="skills" data-play="skills" data-stage="build">
+      <h3>Skills as institutional knowledge</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Policy that must be applied the same way every time becomes a
+        versioned skill, updated in one place when the policy moves. General context belongs in
+        <code>CLAUDE.md</code> or a prompt instead.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Helps: <a href="#claude-md">The CLAUDE.md</a>.</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">A skill only advises: it makes compliance likely, not certain,
+        so a rule that must always hold needs a hook or review pass behind it. Policy owners review
+        skill edits as they would code.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Delay between a policy owner approving a change and the updated
+        skill merging.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Review comments citing the policy, which should approach zero; if
+        they do not, the skill is not firing or has drifted.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="partial"><span class="st partial">partial</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="README.md"><code>README.md</code> links the
+        separate repository that holds the lifecycle skill.</dd>
+        <dt>Gap</dt>
+        <dd data-field="gap">No skill is committed in this repository.</dd>
+      </dl>
+    </article>
+
+    <article id="build-hooks" data-play="build-hooks" data-stage="build">
+      <h3>Hooks as build-time guardrails</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Hooks are the deterministic layer under advisory skills. While
+        code is written they can refuse edits to protected paths, format and lint after each edit,
+        and keep secrets out of the diff, so they must be quick and scoped to the changed file.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Not stated in the source</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Not stated in the source</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Not stated in the source</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Not stated in the source</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="implemented"><span class="st implemented">implemented</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence=".kiro/hooks/privacy-scan.json scripts/privacy_pretooluse_hook.py"><code>.kiro/hooks/privacy-scan.json</code>
+        runs <code>scripts/privacy_pretooluse_hook.py</code> before the agent writes a file.</dd>
+      </dl>
+    </article>
+
+    <article id="parallel-sessions" data-play="parallel-sessions" data-stage="build">
+      <h3>Parallel sessions and subagents</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">An engineer drives several Claude Code sessions at once, each in
+        its own git worktree, and turns recurring jobs into subagents, each scoped to a separate
+        context and a restricted toolset. The engineer's work becomes steering and review.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Required: <a href="#claude-md">The CLAUDE.md</a>.
+        Helps: <a href="#feedback-loop">Give Claude a feedback loop</a>.</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">With more output, control has to come from repository
+        configuration: hooks and permissions bind every session, and each session's actions are
+        attributed to whoever started it.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Sessions an engineer runs at once without review quality slipping,
+        and time spent steering instead of waiting.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Weekly merged changes per engineer, read together with rework.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="declared out of scope"><span class="st oos">declared out of scope</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="">None; see the reason.</dd>
+        <dt>Reason</dt>
+        <dd data-field="reason">Session orchestration is a runtime practice; no subagent definition
+        is committed.</dd>
+      </dl>
+    </article>
+    <p class="src">Paraphrased from <a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-native SDLC playbook</a>, Stage 3.</p>
+  </div>
+</section>
+
+<section id="test">
+  <div class="wrap">
+    <h2>Stage 4 · Test</h2>
+    <p>A session proves its own work before anyone reviews it, and the agent's configuration is
+    regression-tested too.</p>
+    <p class="back"><a href="index.html#p4">Stage 4 in the portal</a></p>
+
+    <article id="feedback-loop" data-play="feedback-loop" data-stage="test">
+      <h3>Give Claude a feedback loop</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Each session gets something to check itself against, such as
+        tests, a build or a screenshot comparison, and iterates until it passes. A verifier
+        subagent is one way to package the last check in a fresh context.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">None</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Hooks can require verification before work is called done. The
+        proof is the toolchain's own output, kept in the transcript and the PR checks, which lets
+        the code owner concentrate on intent and risk.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">How often agent-written changes pass CI on the first run.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Review time per PR and the rate of changes that fail.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="implemented"><span class="st implemented">implemented</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="verify.py .github/workflows/portal-verify.yml"><code>verify.py</code>
+        runs every portal check in one command, and
+        <code>.github/workflows/portal-verify.yml</code> runs it in CI.</dd>
+      </dl>
+    </article>
+
+    <article id="continuous-evals" data-play="continuous-evals" data-stage="test">
+      <h3>Continuous evals in CI</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">An eval suite runs whenever the agent's setup changes, such as a new
+        model or a reworded prompt, and shows whether quality held. Cases that stop telling models
+        apart are retired; monitoring supplies new ones.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Required: <a href="#claude-md">The CLAUDE.md</a>,
+        <a href="#feedback-loop">Give Claude a feedback loop</a>.</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">QA gets a gate that keeps pace: a pass-rate threshold blocks the
+        merge, results are kept for comparison, and the team owning the configuration approves its
+        changes.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Pass rate across runs, and how fast an incident becomes a lasting
+        eval case.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Regressions stopped in CI compared with those that escape to
+        production.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="partial"><span class="st partial">partial</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="scripts/privacy_mutation_proof.py .github/workflows/portal-verify.yml"><code>scripts/privacy_mutation_proof.py</code>
+        proves each scanner rule can fail, run by <code>.github/workflows/portal-verify.yml</code>.</dd>
+        <dt>Gap</dt>
+        <dd data-field="gap">These test the portal and scanner, not the agent's configuration; there
+        is no eval suite over agent tasks.</dd>
+      </dl>
+    </article>
+    <p class="src">Paraphrased from <a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-native SDLC playbook</a>, Stage 4.</p>
+  </div>
+</section>
+
+<section id="deploy">
+  <div class="wrap">
+    <h2>Stage 5 · Deploy</h2>
+    <p>Review runs both ways, controls apply at the moment the agent acts, and the agent stops at
+    the production gate.</p>
+    <p class="back"><a href="index.html#p5">Stage 5 in the portal</a></p>
+
+    <article id="pr-review" data-play="pr-review" data-stage="deploy">
+      <h3>AI in the PR review loop</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Claude reviews incoming PRs against written policy and answers
+        comments on its own. Every PR gets the same ranked findings, and people judge whether the
+        change fits the plan and whether its risk is acceptable.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Required: <a href="#claude-md">The CLAUDE.md</a>.
+        Helps: <a href="#skills">Skills as institutional knowledge</a>,
+        <a href="#parallel-sessions">Parallel sessions and subagents</a> (an interpretive reading of
+        the source's "defined subagents").</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Duties stay separate because the authoring agent cannot approve
+        its own change. <code>REVIEW.md</code> holds the policy, the PR records findings and
+        approvals, and a human approves through branch protection.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Minutes to a first review, and comments settled without a person
+        editing the branch.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Defects and vulnerabilities stopped before merge compared with
+        those found later.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="partial"><span class="st partial">partial</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence=".github/pull_request_template.md .github/workflows/sdlc-gate.yml"><code>.github/pull_request_template.md</code>
+        structures every PR, and <code>.github/workflows/sdlc-gate.yml</code> checks it against the
+        accepted chain.</dd>
+        <dt>Gap</dt>
+        <dd data-field="gap">No <code>REVIEW.md</code> and no AI review pass.</dd>
+      </dl>
+    </article>
+
+    <article id="approval-hooks" data-play="approval-hooks" data-stage="deploy">
+      <h3>Hooks as approval gates</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Beyond allowing or blocking, a hook can hold an action until a named
+        person approves it. Release is the obvious case, but the same gate works anywhere Claude
+        acts, such as migrations or test files.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">None</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">The hook is the gate: its rule applies on every run and to
+        every person, each verdict is logged with a time, and the gate itself defines what counts as
+        approval.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Waiting time at each gate, read from the logged hook verdicts.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Gate breaches reaching production, before versus after the hooks.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="partial"><span class="st partial">partial</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence=".githooks/pre-push"><code>.githooks/pre-push</code>
+        refuses a push that the privacy scan flags.</dd>
+        <dt>Gap</dt>
+        <dd data-field="gap">No hook asks a named person to approve; human approval comes from branch
+        protection, which is repository configuration, not a committed file.</dd>
+      </dl>
+    </article>
+
+    <article id="cicd" data-play="cicd" data-stage="deploy">
+      <h3>CI/CD integration and deployment</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Claude runs headless in the pipeline for steps needing judgement,
+        sandboxed with scoped credentials, reaches deployment tools through MCP, and has rollback
+        paths rehearsed before it ever needs them.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Required: <a href="#pr-review">AI in the PR review loop</a>,
+        <a href="#approval-hooks">Hooks as approval gates</a>.</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">The agent may work up to the production gate, never through it:
+        its output arrives as PRs, a named release manager authorises production, it runs under its
+        own identity, and each environment sets its tier.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Pipeline failures triaged without paging anyone.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">The four DORA delivery measures.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="partial"><span class="st partial">partial</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence=".github/workflows/"><code>.github/workflows/</code>
+        runs the portal, privacy and lifecycle gates on every PR.</dd>
+        <dt>Gap</dt>
+        <dd data-field="gap">CI is deterministic only; no agent step, MCP deployment or rehearsed
+        rollback.</dd>
+      </dl>
+    </article>
+    <p class="src">Paraphrased from <a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-native SDLC playbook</a>, Stage 5.</p>
+  </div>
+</section>
+
+<section id="maintain">
+  <div class="wrap">
+    <h2>Stage 6 · Maintain</h2>
+    <p>A trigger starts the agent with nobody in the loop, and what it finds returns as a new
+    <code>intent.md</code>. The stage's opening part, on maintenance in general, is context rather
+    than a play.</p>
+    <p class="back"><a href="index.html#p6">Stage 6 in the portal</a></p>
+
+    <article id="closing-loop" data-play="closing-loop" data-stage="maintain">
+      <h3>Closing the loop</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">A deterministic script watches production and calls Claude only
+        once a control band is breached. Claude diagnoses, acts within its tier, and records its
+        findings as a new <code>intent.md</code> that re-enters Plan.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Required: <a href="#capture-intent">Capture as intent.md</a>,
+        <a href="#pr-review">AI in the PR review loop</a>,
+        <a href="#approval-hooks">Hooks as approval gates</a> (an interpretive reading of the
+        source's "hooks as an action boundary"),
+        <a href="#cicd">CI/CD integration and deployment</a>.</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Tier limits come from versioned configuration that denies
+        production access. Every invocation and finding is timestamped, a service owner triages,
+        fixes take the normal review path, and runbooks are pre-approved.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Time from a breach to a new intent waiting for triage.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Findings that end as merged fixes, and whether the same class of
+        incident returns.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="declared out of scope"><span class="st oos">declared out of scope</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="">None; see the reason.</dd>
+        <dt>Reason</dt>
+        <dd data-field="reason">A static page has no production metric to band; no
+        <code>bands.yaml</code> is committed.</dd>
+      </dl>
+    </article>
+
+    <article id="recurring-scans" data-play="recurring-scans" data-stage="maintain">
+      <h3>Recurring codebase scans</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Security scans run on a timetable that no one has to start, since
+        both the code and the models that find flaws keep moving. Findings take the usual gates:
+        small fixes as PRs, larger work as a new intent.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Required: <a href="#pr-review">AI in the PR review loop</a>,
+        <a href="#approval-hooks">Hooks as approval gates</a>,
+        <a href="#capture-intent">Capture as intent.md</a>.</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">Repositories, scan seats and spend are controlled centrally.
+        Each finding carries a validation and confidence rating and each dismissal a reason, and
+        fixes still reach production only through review.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">The share of repositories scanned on a timetable, and how long a
+        finding waits before its patch enters review.</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Flaws found by the scans compared with those found in production or
+        reported from outside.</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="declared out of scope"><span class="st oos">declared out of scope</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="">None; see the reason.</dd>
+        <dt>Reason</dt>
+        <dd data-field="reason">The privacy scan runs on changes, not on a schedule, and is not a
+        model-driven scan.</dd>
+      </dl>
+    </article>
+
+    <article id="claude-tag" data-play="claude-tag" data-stage="maintain">
+      <h3>Claude on call with Claude Tag</h3>
+      <dl>
+        <dt>What changes</dt>
+        <dd data-field="summary">Claude sits in incident and work channels under its own identity,
+        so each incident gets a first responder. It confirms recovery, files the post-mortem as a
+        versioned lessons file, and hands bigger work back as an intent.</dd>
+        <dt>Prerequisites</dt>
+        <dd data-field="prerequisites">Not stated in the source</dd>
+        <dt>Governance</dt>
+        <dd data-field="governance">The channel history doubles as the audit record, keeping the
+        request, the diagnosis, the human sign-off and the fix in one place.</dd>
+        <dt>Leading indicator</dt>
+        <dd data-field="leading">Not stated in the source</dd>
+        <dt>Lagging indicator</dt>
+        <dd data-field="lagging">Not stated in the source</dd>
+        <dt>Status here</dt>
+        <dd data-field="status" data-status="declared out of scope"><span class="st oos">declared out of scope</span></dd>
+        <dt>Evidence</dt>
+        <dd data-field="evidence" data-evidence="">None; see the reason.</dd>
+        <dt>Reason</dt>
+        <dd data-field="reason">No channel integration exists or is planned for this
+        repository.</dd>
+      </dl>
+    </article>
+    <p class="src">Paraphrased from <a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-native SDLC playbook</a>, Stage 6.</p>
+  </div>
+</section>
+
+<section id="out-of-scope">
+  <div class="wrap">
+    <h2>Declared out of scope here</h2>
+    <p>Six plays are deliberately not adopted in this repository. Each entry gives its reason; the
+    portal's "does not cover" note names the same six.</p>
+    <ul>
+      <li><a href="#auto-mode">Claude Code on auto mode</a></li>
+      <li><a href="#claude-md">The CLAUDE.md</a></li>
+      <li><a href="#parallel-sessions">Parallel sessions and subagents</a></li>
+      <li><a href="#closing-loop">Closing the loop</a></li>
+      <li><a href="#recurring-scans">Recurring codebase scans</a></li>
+      <li><a href="#claude-tag">Claude on call with Claude Tag</a></li>
+    </ul>
+  </div>
+</section>
+
+<section id="cross-cutting">
+  <div class="wrap">
+    <h2>Cross-cutting notes</h2>
+    <p>Two passages in the source apply across stages. They are not plays.</p>
+    <div class="note" data-crosscut="legacy-systems">
+      <h3>Legacy systems and the source of truth</h3>
+      <p>Most teams already keep these records in tools auditors trust, such as trackers,
+      requirements systems and change boards. For each artifact, pick one authoritative home: the
+      repository, the existing tool, or at minimum both, cross-linked by record ID and commit
+      SHA.</p>
+    </div>
+    <div class="note" data-crosscut="managed-settings">
+      <h3>Managed settings</h3>
+      <p>The source's worked example has a platform team push locked settings that deny secret
+      reads, confine network access with an OS sandbox, accept only managed hooks, MCP servers and
+      plugins, and set a minimum client version. It is a starting point to tailor; this page does
+      not reproduce the configuration.</p>
+    </div>
+  </div>
+</section>
+
+<section id="dependencies">
+  <div class="wrap">
+    <h2>What to adopt first</h2>
+    <p>Edges come only from each play's prerequisites text. <b>Required</b> means adopt that play
+    first; <b>helps</b> means it makes the later play easier. The list is the canonical form; the
+    figure draws the same edges.</p>
+    <ol id="dependency-list" class="edges">
+      <li data-edge="capture-intent requirements-design required">Capture as intent.md → Requirements and design (required)</li>
+      <li data-edge="skills requirements-design required">Skills → Requirements and design (required)</li>
+      <li data-edge="capture-intent plan-mode helps">Capture as intent.md → Plan mode (helps)</li>
+      <li data-edge="requirements-design plan-mode helps">Requirements and design → Plan mode (helps)</li>
+      <li data-edge="claude-md plan-mode helps">CLAUDE.md → Plan mode (helps)</li>
+      <li data-edge="claude-md skills helps">CLAUDE.md → Skills (helps)</li>
+      <li data-edge="claude-md parallel-sessions required">CLAUDE.md → Parallel sessions (required)</li>
+      <li data-edge="feedback-loop parallel-sessions helps">Feedback loop → Parallel sessions (helps)</li>
+      <li data-edge="claude-md continuous-evals required">CLAUDE.md → Continuous evals (required)</li>
+      <li data-edge="feedback-loop continuous-evals required">Feedback loop → Continuous evals (required)</li>
+      <li data-edge="claude-md pr-review required">CLAUDE.md → PR review (required)</li>
+      <li data-edge="skills pr-review helps">Skills → PR review (helps)</li>
+      <li data-edge="parallel-sessions pr-review helps">Parallel sessions → PR review (helps; interpretive reading)</li>
+      <li data-edge="pr-review cicd required">PR review → CI/CD (required)</li>
+      <li data-edge="approval-hooks cicd required">Approval hooks → CI/CD (required)</li>
+      <li data-edge="capture-intent closing-loop required">Capture as intent.md → Closing the loop (required)</li>
+      <li data-edge="pr-review closing-loop required">PR review → Closing the loop (required)</li>
+      <li data-edge="approval-hooks closing-loop required">Approval hooks → Closing the loop (required; interpretive reading)</li>
+      <li data-edge="cicd closing-loop required">CI/CD → Closing the loop (required)</li>
+      <li data-edge="pr-review recurring-scans required">PR review → Recurring scans (required)</li>
+      <li data-edge="approval-hooks recurring-scans required">Approval hooks → Recurring scans (required)</li>
+      <li data-edge="capture-intent recurring-scans required">Capture as intent.md → Recurring scans (required)</li>
+    </ol>
+    <p>Auto mode, build-time hooks and Claude Tag have no prerequisites text in the source, so they
+    have no edges.</p>
+
+    <figure class="dg">
+      <svg viewBox="0 0 340 420" role="img" aria-labelledby="dep-t dep-d">
+        <title id="dep-t">Play dependency graph</title>
+        <desc id="dep-d">Thirteen plays in five rows, drawn top to bottom in adoption order. Solid
+        arrows are required prerequisites and dashed arrows are helpful ones, matching the
+        dependency list above edge for edge.</desc>
+        <defs>
+          <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0L8 4L0 8z" fill="#93a4b7"/>
+          </marker>
+        </defs>
+        <g fill="none" stroke="#93a4b7" stroke-width="1.4" marker-end="url(#ah)">
+          <g data-edge="capture-intent requirements-design required"><line x1="45" y1="47" x2="45" y2="193"/></g>
+          <g data-edge="skills requirements-design required"><line x1="125" y1="127" x2="55" y2="193"/></g>
+          <g data-edge="capture-intent plan-mode helps"><line x1="40" y1="47" x2="35" y2="273" stroke-dasharray="5 4"/></g>
+          <g data-edge="requirements-design plan-mode helps"><line x1="55" y1="227" x2="75" y2="273" stroke-dasharray="5 4"/></g>
+          <g data-edge="claude-md plan-mode helps"><line x1="125" y1="47" x2="95" y2="273" stroke-dasharray="5 4"/></g>
+          <g data-edge="claude-md skills helps"><line x1="125" y1="47" x2="125" y2="113" stroke-dasharray="5 4"/></g>
+          <g data-edge="claude-md parallel-sessions required"><line x1="135" y1="47" x2="205" y2="113"/></g>
+          <g data-edge="feedback-loop parallel-sessions helps"><line x1="205" y1="47" x2="210" y2="113" stroke-dasharray="5 4"/></g>
+          <g data-edge="claude-md continuous-evals required"><line x1="145" y1="47" x2="285" y2="113"/></g>
+          <g data-edge="feedback-loop continuous-evals required"><line x1="215" y1="47" x2="290" y2="113"/></g>
+          <g data-edge="claude-md pr-review required"><line x1="130" y1="47" x2="160" y2="193"/></g>
+          <g data-edge="skills pr-review helps"><line x1="130" y1="147" x2="165" y2="193" stroke-dasharray="5 4"/></g>
+          <g data-edge="parallel-sessions pr-review helps"><line x1="205" y1="147" x2="175" y2="193" stroke-dasharray="5 4"/></g>
+          <g data-edge="pr-review cicd required"><line x1="170" y1="227" x2="235" y2="273"/></g>
+          <g data-edge="approval-hooks cicd required"><line x1="290" y1="47" x2="255" y2="273"/></g>
+          <g data-edge="capture-intent closing-loop required"><line x1="35" y1="47" x2="115" y2="353"/></g>
+          <g data-edge="pr-review closing-loop required"><line x1="160" y1="227" x2="125" y2="353"/></g>
+          <g data-edge="approval-hooks closing-loop required"><line x1="285" y1="47" x2="140" y2="353"/></g>
+          <g data-edge="cicd closing-loop required"><line x1="235" y1="307" x2="135" y2="353"/></g>
+          <g data-edge="pr-review recurring-scans required"><line x1="180" y1="227" x2="245" y2="353"/></g>
+          <g data-edge="approval-hooks recurring-scans required"><line x1="295" y1="47" x2="265" y2="353"/></g>
+          <g data-edge="capture-intent recurring-scans required"><line x1="50" y1="47" x2="250" y2="353"/></g>
+        </g>
+        <g font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">
+          <g fill="#151b23" stroke="#7fb3ff" stroke-width="1.2">
+            <rect x="7" y="13" width="76" height="34" rx="6"/>
+            <rect x="87" y="13" width="76" height="34" rx="6"/>
+            <rect x="167" y="13" width="76" height="34" rx="6"/>
+            <rect x="247" y="13" width="76" height="34" rx="6"/>
+            <rect x="87" y="113" width="76" height="34" rx="6"/>
+            <rect x="167" y="113" width="76" height="34" rx="6"/>
+            <rect x="247" y="113" width="76" height="34" rx="6"/>
+            <rect x="7" y="193" width="76" height="34" rx="6"/>
+            <rect x="127" y="193" width="76" height="34" rx="6"/>
+            <rect x="7" y="273" width="106" height="34" rx="6"/>
+            <rect x="197" y="273" width="76" height="34" rx="6"/>
+            <rect x="87" y="353" width="76" height="34" rx="6"/>
+            <rect x="207" y="353" width="96" height="34" rx="6"/>
+          </g>
+          <g fill="#e9eff5">
+            <text x="45" y="34">intent.md</text>
+            <text x="125" y="34">CLAUDE.md</text>
+            <text x="205" y="34">Feedback</text>
+            <text x="285" y="34">Approval</text>
+            <text x="125" y="134">Skills</text>
+            <text x="205" y="134">Parallel</text>
+            <text x="285" y="134">Evals</text>
+            <text x="45" y="214">Req. + design</text>
+            <text x="165" y="214">PR review</text>
+            <text x="60" y="294">Plan mode</text>
+            <text x="235" y="294">CI/CD</text>
+            <text x="125" y="374">Close loop</text>
+            <text x="255" y="374">Scans</text>
+          </g>
+        </g>
+        <g font-family="system-ui,sans-serif" font-size="11" fill="#b3c2d2">
+          <line x1="20" y1="405" x2="50" y2="405" stroke="#93a4b7" stroke-width="1.4"/>
+          <text x="56" y="409">required</text>
+          <line x1="140" y1="405" x2="170" y2="405" stroke="#93a4b7" stroke-width="1.4" stroke-dasharray="5 4"/>
+          <text x="176" y="409">helps</text>
+        </g>
+      </svg>
+      <figcaption>Adoption order for the thirteen plays with prerequisites. Solid lines are
+      required, dashed lines help. Where lines cross, the list above is authoritative.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="glossary-section">
+  <div class="wrap">
+    <h2>Glossary</h2>
+    <dl id="glossary">
+      <dt id="term-intent">Intent</dt>
+      <dd>A short committed file, <code>intent.md</code>, stating a problem, the outcome wanted and
+      its limits, in the words of whoever raised it.</dd>
+      <dt id="term-spec">Spec</dt>
+      <dd>The requirements and design for one intent, <code>spec.md</code>, signed off by its
+      owner before planning.</dd>
+      <dt id="term-plan">Plan</dt>
+      <dd>The accepted implementation plan, <code>plan.md</code>: files that change, order of work
+      and the tests that prove it.</dd>
+      <dt id="term-play">Play</dt>
+      <dd>One adoptable practice in the Playbook, belonging to a single stage.</dd>
+      <dt id="term-gate">Gate</dt>
+      <dd>A check that must pass before work moves on, ideally enforced by code rather than by
+      habit.</dd>
+      <dt id="term-control-band">Control band</dt>
+      <dd>The normal range for a production metric; leaving it is what triggers the agent in
+      Maintain.</dd>
+      <dt id="term-hook">Hook</dt>
+      <dd>A script the agent runtime runs on a matching action, able to allow, block or ask for
+      approval.</dd>
+      <dt id="term-skill">Skill</dt>
+      <dd>A versioned instruction set the agent loads to apply a policy or procedure
+      consistently.</dd>
+      <dt id="term-subagent">Subagent</dt>
+      <dd>A scoped helper inside one session that keeps a separate context and a restricted
+      toolset.</dd>
+      <dt id="term-worktree">Worktree</dt>
+      <dd>An extra git working directory on its own branch, so parallel sessions do not collide.</dd>
+      <dt id="term-eval">Eval</dt>
+      <dd>A repeatable test of the agent's behaviour, used to catch regressions when its setup
+      changes.</dd>
+      <dt id="term-mcp">MCP</dt>
+      <dd>Model Context Protocol: the standard way to expose tools and data sources to the
+      agent.</dd>
+      <dt id="term-managed-settings">Managed settings</dt>
+      <dd>Agent configuration pushed centrally by a platform team that individual engineers cannot
+      override.</dd>
+      <dt id="term-merge-base">Merge base</dt>
+      <dd>The commit where a branch left <code>main</code>; plan acceptance in this repository is
+      bound to it.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="terminology-section">
+  <div class="wrap">
+    <h2>Playbook terms and this repository</h2>
+    <p>The Playbook names Claude Code files; this repository runs a different agent runtime. Each
+    row gives the local path, or says there is none.</p>
+    <div class="table-scroll" role="region" aria-label="Terminology map" tabindex="0">
+      <table id="terminology">
+        <thead><tr><th scope="col">Playbook term</th><th scope="col">Here</th></tr></thead>
+        <tbody>
+          <tr data-term="CLAUDE.md"><td><code>CLAUDE.md</code></td><td data-counterpart="No counterpart">No counterpart</td></tr>
+          <tr data-term=".claude/skills/"><td><code>.claude/skills/</code></td><td data-counterpart="No counterpart">No counterpart</td></tr>
+          <tr data-term=".claude/settings.json hooks"><td><code>.claude/settings.json</code> hooks</td><td data-counterpart=".kiro/hooks/privacy-scan.json"><code>.kiro/hooks/privacy-scan.json</code></td></tr>
+          <tr data-term=".claude/agents/"><td><code>.claude/agents/</code></td><td data-counterpart="No counterpart">No counterpart</td></tr>
+          <tr data-term="REVIEW.md"><td><code>REVIEW.md</code></td><td data-counterpart="No counterpart">No counterpart</td></tr>
+          <tr data-term="bands.yaml"><td><code>bands.yaml</code></td><td data-counterpart="No counterpart">No counterpart</td></tr>
+          <tr data-term="evals/"><td><code>evals/</code></td><td data-counterpart="evals/"><code>evals/</code></td></tr>
+          <tr data-term="managed settings"><td>Managed settings</td><td data-counterpart="No counterpart">No counterpart</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Source: <a href="https://claude.com/blog/the-ai-native-sdlc-playbook">The AI-native SDLC
+    playbook</a>, Anthropic, 21 August 2026. All entries are paraphrased; no source sentence, code
+    sample or configuration is reproduced. Back to the <a href="index.html">portal</a>.</p>
+  </div>
+</footer>
+</body>
+</html>
