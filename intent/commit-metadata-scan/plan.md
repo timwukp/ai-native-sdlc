@@ -4,7 +4,7 @@
 - **Author:** Kiro (AI agent)
 - **Accepted-by:** Tim WU
 - **Accepted-for:** f6eef816cf89fe237af3ab59c3508ad3f0551f85
-- **Status:** accepted
+- **Status:** shipped
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time, the value the CI gate
 compares. It binds review to protected `main` after the playbook-play-coverage closeout.
