@@ -12,6 +12,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCANNER = ROOT / "scripts" / "privacy_scan.py"
 TEST = ROOT / "scripts" / "test_privacy_scan.py"
+ALLOWLIST = ROOT / ".privacy-allowlist.json"
 CATEGORIES = (
     "developer_home",
     "configured_marker",
@@ -26,40 +27,72 @@ CATEGORIES = (
 )
 
 
+# Metadata mutations: (name, exact-once anchor, replacement). Each must fail the unit tests.
+METADATA_MUTATIONS = (
+    (
+        "identity_check_disabled",
+        "        findings.update(_identity_findings(short, identity, config))",
+        "        pass",
+    ),
+    (
+        "identity_last_commit_only",
+        "scan_commit_identities(root, unique, config)",
+        "scan_commit_identities(root, unique[-1:], config)",
+    ),
+    (
+        "identity_value_leaked",
+        "MetadataFinding(short, field, category,",
+        "MetadataFinding(short, field + value, category,",
+    ),
+)
+
+
+def run_tests(source: str) -> int:
+    """Run the scanner tests against ``source`` in a throwaway tree and return the exit code."""
+    with tempfile.TemporaryDirectory() as td:
+        root = pathlib.Path(td)
+        scripts = root / "scripts"
+        scripts.mkdir()
+        (scripts / "privacy_scan.py").write_text(source, encoding="utf-8")
+        shutil.copy2(TEST, scripts / TEST.name)
+        shutil.copy2(ALLOWLIST, root / ALLOWLIST.name)
+        proc = subprocess.run(
+            [sys.executable, str(scripts / TEST.name)],
+            cwd=root,
+            text=True,
+            capture_output=True,
+        )
+        return proc.returncode
+
+
 def main() -> int:
     if not SCANNER.is_file():
         print("FAILED: scripts/privacy_scan.py has not been implemented")
         return 1
     source = SCANNER.read_text(encoding="utf-8")
+    # A mutant only counts as killed if the unmutated copy passes in the same throwaway tree;
+    # otherwise every mutant would be "killed" by the environment rather than by a test.
+    if run_tests(source):
+        print("FAILED: unmutated scanner does not pass its tests in the proof tree")
+        return 1
+    mutations = [
+        (category, f'        ("{category}", _scan_{category}),', "") for category in CATEGORIES
+    ]
+    mutations.extend(METADATA_MUTATIONS)
     results: list[tuple[str, str]] = []
-    for category in CATEGORIES:
-        anchor = f'        ("{category}", _scan_{category}),'
+    for name, anchor, replacement in mutations:
         if source.count(anchor) != 1:
-            results.append((category, "broken"))
+            results.append((name, "broken"))
             continue
-        with tempfile.TemporaryDirectory() as td:
-            root = pathlib.Path(td)
-            scripts = root / "scripts"
-            scripts.mkdir()
-            (scripts / "privacy_scan.py").write_text(
-                source.replace(anchor, "", 1), encoding="utf-8"
-            )
-            shutil.copy2(TEST, scripts / TEST.name)
-            proc = subprocess.run(
-                [sys.executable, str(scripts / TEST.name)],
-                cwd=root,
-                text=True,
-                capture_output=True,
-            )
-            results.append((category, "killed" if proc.returncode else "survived"))
-    for category, state in results:
-        print(f"{category}: {state}")
+        code = run_tests(source.replace(anchor, replacement, 1))
+        results.append((name, "killed" if code else "survived"))
+    for name, state in results:
+        print(f"{name}: {state}")
     killed = sum(state == "killed" for _, state in results)
     survived = sum(state == "survived" for _, state in results)
     broken = sum(state == "broken" for _, state in results)
     print(f"{killed} killed, {survived} survived, {broken} broken")
-    return 0 if killed == len(CATEGORIES) and not survived and not broken else 1
-
+    return 0 if killed == len(mutations) and not survived and not broken else 1
 
 if __name__ == "__main__":
     raise SystemExit(main())
