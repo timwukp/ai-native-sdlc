@@ -1,7 +1,8 @@
 {
   "schema_version": 1,
   "allowed_exact": [
-    "Tim WU"
+    "Tim WU",
+    "noreply@github.com"
   ],
   "allowed_patterns": [
     "^[^@\\s]+@users\\.noreply\\.github\\.com$",

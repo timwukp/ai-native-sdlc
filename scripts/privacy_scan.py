@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic high-confidence privacy scanner.
 
-Findings deliberately carry no matched source value. A diagnostic contains only category,
-repository-relative path, line number, and remediation.
+Findings deliberately carry no matched source value. A content diagnostic contains only category,
+repository-relative path, line number, and remediation. A commit-identity diagnostic contains only
+category, the first 12 hex digits of the commit id, the field name, and remediation.
 """
 
 from __future__ import annotations
@@ -41,11 +42,21 @@ class Finding:
     remediation: str
 
 
+@dataclasses.dataclass(frozen=True, order=True)
+class MetadataFinding:
+    commit: str
+    field: str
+    category: str
+    remediation: str
+
+
 @dataclasses.dataclass(frozen=True)
 class ScanResult:
     findings: tuple[Finding, ...]
     scanned_files: int
     skipped_binary: int
+    metadata_findings: tuple[MetadataFinding, ...] = ()
+    identities_checked: Optional[int] = None
 
 
 EXPECTED_CONFIG_KEYS = {
@@ -56,6 +67,9 @@ EXPECTED_CONFIG_KEYS = {
     "max_text_bytes",
 }
 ZERO_SHA = "0" * 40
+FULL_SHA_RE = re.compile(r"[0-9a-fA-F]{40}")
+IDENTITY_ROLES = ("author", "committer")
+IDENTITY_RE = re.compile(r"(?P<name>[^<>\n]*?) <(?P<email>[^<>\n]*)> -?\d+ [+-]\d{4}")
 EMAIL_RE = re.compile(r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 HOME_RES = (
     re.compile(r"(?<![A-Za-z0-9<])/(?:home|Users)/[A-Za-z0-9._-]+/"),
@@ -83,6 +97,7 @@ REMEDIATIONS = {
     "aws_key": "remove and rotate the AWS credential before publishing any commit",
     "github_token": "remove and rotate the GitHub credential before publishing any commit",
     "slack_token": "remove and rotate the Slack credential before publishing any commit",
+    "commit_email": "re-author the commit with a GitHub noreply or other reviewed public address",
 }
 
 
@@ -247,14 +262,21 @@ def scan_text(text: str, path: str, config: Config) -> tuple[Finding, ...]:
     return tuple(sorted(findings))
 
 
-def format_findings(findings: Iterable[Finding]) -> str:
-    lines = []
-    for finding in sorted(findings):
-        lines.append(
-            "PRIVACY FINDING: "
-            f"category={finding.category} path={finding.path} line={finding.line}; "
-            f"{finding.remediation}; matched value redacted"
-        )
+def format_findings(findings: Iterable[Finding | MetadataFinding]) -> str:
+    content = sorted(f for f in findings if isinstance(f, Finding))
+    metadata = sorted(f for f in findings if isinstance(f, MetadataFinding))
+    lines = [
+        "PRIVACY FINDING: "
+        f"category={finding.category} path={finding.path} line={finding.line}; "
+        f"{finding.remediation}; matched value redacted"
+        for finding in content
+    ]
+    lines.extend(
+        "PRIVACY FINDING: "
+        f"category={finding.category} commit={finding.commit} field={finding.field}; "
+        f"{finding.remediation}; matched value redacted"
+        for finding in metadata
+    )
     return "\n".join(lines)
 
 
@@ -339,6 +361,77 @@ def _scan_treeish(repo: pathlib.Path, treeish: str, config: Config) -> ScanResul
     return ScanResult(tuple(sorted(findings)), scanned, skipped)
 
 
+def _commit_identity(repo: pathlib.Path, commit: str) -> dict[str, tuple[str, str]]:
+    """Return {role: (name, email)} parsed from the raw commit object header."""
+    short = commit[:12]
+    raw = _git(repo, ("cat-file", "commit", commit))
+    header = raw.split(b"\n\n", 1)[0]
+    try:
+        text = header.decode("utf-8")
+    except UnicodeError as exc:
+        raise ScanError(f"commit header is not valid UTF-8: {short}") from exc
+    identity: dict[str, tuple[str, str]] = {}
+    for line in text.split("\n"):
+        for role in IDENTITY_ROLES:
+            if not line.startswith(role + " "):
+                continue
+            if role in identity:
+                raise ScanError(f"commit has more than one {role} line: {short}")
+            match = IDENTITY_RE.fullmatch(line[len(role) + 1:])
+            if match is None:
+                raise ScanError(f"commit {role} line is malformed: {short}")
+            identity[role] = (match.group("name"), match.group("email"))
+    if set(identity) != set(IDENTITY_ROLES):
+        raise ScanError(f"commit lacks an author or committer line: {short}")
+    return identity
+
+
+def _identity_findings(
+    short: str, identity: dict[str, tuple[str, str]], config: Config
+) -> list[MetadataFinding]:
+    findings: list[MetadataFinding] = []
+    for role in IDENTITY_ROLES:
+        name, email = identity[role]
+        for field, value in ((f"{role}-name", name), (f"{role}-email", email)):
+            if field.endswith("-email"):
+                # Allowlist-judged: anything not a reviewed public identity is a finding.
+                categories = set() if value and _allowed(value, config) else {"commit_email"}
+            else:
+                # Names are not PII by themselves; only the content rules apply to them.
+                categories = {finding.category for finding in scan_text(value, field, config)}
+            for category in sorted(categories):
+                findings.append(MetadataFinding(short, field, category, REMEDIATIONS[category]))
+    return findings
+
+
+def scan_commit_identities(
+    repo: pathlib.Path, commits: Sequence[str], config: Config
+) -> tuple[tuple[MetadataFinding, ...], int]:
+    """Check author and committer identity of each commit; return findings and commits checked."""
+    findings: set[MetadataFinding] = set()
+    unique = list(dict.fromkeys(commits))
+    for commit in unique:
+        identity = _commit_identity(repo, commit)
+        short = commit[:12]
+        findings.update(_identity_findings(short, identity, config))
+    return tuple(sorted(findings)), len(unique)
+
+
+def scan_commit_range(repo: pathlib.Path, base: str, head: str, config: Config) -> ScanResult:
+    """Check identities of the commits in merge-base(base, head)..head."""
+    if not FULL_SHA_RE.fullmatch(base) or not FULL_SHA_RE.fullmatch(head):
+        raise ScanError("--commit-range needs two full 40-hex commit ids")
+    root = _repo_root(repo)
+    try:
+        merge_base = _git(root, ("merge-base", base, head)).decode("ascii").strip()
+        raw = _git(root, ("rev-list", "--reverse", f"{merge_base}..{head}"))
+        commits = [line for line in raw.decode("ascii").splitlines() if line]
+    except UnicodeError as exc:
+        raise ScanError("Git returned a non-ASCII commit id") from exc
+    metadata, checked = scan_commit_identities(root, commits, config)
+    return ScanResult((), 0, 0, metadata, checked)
+
+
 def _outgoing_commits(repo: pathlib.Path, remote: str, local_sha: str, remote_sha: str) -> list[str]:
     if remote_sha == ZERO_SHA:
         raw = _git(repo, ("rev-list", "--reverse", local_sha, "--not", f"--remotes={remote}"))
@@ -371,28 +464,38 @@ def scan_pre_push(repo: pathlib.Path, remote: str, updates: str, config: Config)
     findings: set[Finding] = set()
     scanned = 0
     skipped = 0
-    for commit in dict.fromkeys(commits):
+    unique = list(dict.fromkeys(commits))
+    for commit in unique:
         result = _scan_treeish(root, commit, config)
         findings.update(result.findings)
         scanned += result.scanned_files
         skipped += result.skipped_binary
-    return ScanResult(tuple(sorted(findings)), scanned, skipped)
+    metadata, checked = scan_commit_identities(root, unique, config)
+    return ScanResult(tuple(sorted(findings)), scanned, skipped, metadata, checked)
 
 
 def _render_result(result: ScanResult) -> int:
-    if result.findings:
-        print(format_findings(result.findings), file=sys.stderr)
+    every = (*result.findings, *result.metadata_findings)
+    if every:
+        print(format_findings(every), file=sys.stderr)
     print(
         f"privacy scan: {result.scanned_files} text files, "
-        f"{result.skipped_binary} binary files skipped, {len(result.findings)} findings"
+        f"{result.skipped_binary} binary files skipped, {len(every)} findings"
     )
-    return 1 if result.findings else 0
+    if result.identities_checked is not None:
+        print(f"privacy scan: {result.identities_checked} commit identities checked")
+    return 1 if every else 0
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--repo", default=".", help="repository root or a path inside it")
-    parser.add_argument("--pre-push", action="store_true", help="read Git pre-push updates")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--pre-push", action="store_true", help="read Git pre-push updates")
+    mode.add_argument(
+        "--commit-range", nargs=2, metavar=("BASE", "HEAD"),
+        help="check commit identities in merge-base(BASE, HEAD)..HEAD (full ids)",
+    )
     parser.add_argument("--remote", default="", help="remote name for --pre-push")
     args = parser.parse_args(argv)
     try:
@@ -400,6 +503,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         config = load_config(root / ".privacy-allowlist.json")
         if args.pre_push:
             result = scan_pre_push(root, args.remote, sys.stdin.read(), config)
+        elif args.commit_range:
+            result = scan_commit_range(root, args.commit_range[0], args.commit_range[1], config)
         else:
             result = scan_repository(root, config)
         return _render_result(result)
