@@ -2,9 +2,9 @@
 
 - **Slug:** stage-plays-link-names
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-10-08
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/23
 
 ## Problem
