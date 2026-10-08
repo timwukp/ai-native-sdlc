@@ -2,9 +2,9 @@
 
 - **Slug:** commit-metadata-scan
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-10-06
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/12
 
 ## Problem
@@ -80,7 +80,10 @@ separate surfaces with separate checks.
 8. `README.md` names the two surfaces separately and states what metadata scanning does not cover.
 9. The chain closes as `shipped` through an artifact-only pull request.
 
-## Decisions proposed for acceptance
+## Decisions accepted
+
+All four decisions below were accepted as proposed, including decision 1 (CI scans the pull
+request's commits).
 
 1. **CI also scans the pull request's commits (recommended).** The pre-push hook is opt-in and
    POSIX-only, so it cannot be the only control; the shipped design made CI the backstop for
