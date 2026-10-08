@@ -149,10 +149,29 @@ another `core.hooksPath` or an existing pre-push hook. A user can bypass a Git h
 starts; review findings and rotate/remove real credentials immediately.
 
 The narrow allowlist in `.privacy-allowlist.json` is reviewed like code. It permits public/example
-values only and cannot skip a path or category. This scanner does not infer names or free-form prose,
-and a clean result **does not prove the repository contains no PII**. Its selected credential
+values only and cannot skip a path or category. It holds one exact address beyond the noreply
+pattern: GitHub's web-flow committer address, which GitHub itself writes as the committer of
+merges and "Update branch" commits made in its web interface. This scanner does not infer names or
+free-form prose, and a clean result **does not prove the repository contains no PII**. Its selected credential
 patterns are **not a replacement for a specialist secret scanner** such as Gitleaks, and the feature
 is not privacy certification or a compliance control.
+
+### Two published surfaces
+
+A push publishes two things, and they are checked separately:
+
+- **tree content**: the files in each commit. The Kiro write-time hook checks content as it is
+  written, the pre-push hook checks the tree of every outgoing commit, and CI checks the tracked
+  tree.
+- **commit identity metadata**: the author and committer name and email recorded in each commit
+  object. The pre-push hook checks every outgoing commit, and CI checks the commits in the pull
+  request with `--commit-range`. An email passes only if the allowlist admits it; a name is
+  checked by the content rules only. Findings name the commit and field, never the value.
+
+Not covered: commit messages and their trailers (such as `Co-authored-by:`),
+annotated-tag tagger identity, merge commits GitHub creates on `main` when a pull request merges, and history that is
+already published. For merge commits, keep "Keep my email addresses private" and "Block command
+line pushes that expose my email" enabled in the GitHub account settings.
 
 ## How it publishes
 

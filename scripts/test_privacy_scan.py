@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import pathlib
 import subprocess
 import sys
 import tempfile
 import unittest
+from typing import Optional
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCANNER = ROOT / "scripts" / "privacy_scan.py"
@@ -238,6 +240,243 @@ class PrivacyScannerTests(unittest.TestCase):
             self.assertIn("email", combined)
             self.assertIn("tracked.txt", combined)
             self.assertNotIn(value, combined)
+
+
+def identities() -> dict[str, str]:
+    """Synthetic commit identities, assembled at runtime so no literal address is committed."""
+    at = chr(64)
+    return {
+        "noreply": "".join(("8848995+timwukp", at, "users.noreply.github.com")),
+        "web_flow": "".join(("noreply", at, "github.com")),
+        "other_github": "".join(("someone", at, "github.com")),
+        "private": "".join(("learner", at, "private.invalid")),
+        "internal_host": "".join(("builder", at, "ip-192-0-2-1.compute.internal")),
+    }
+
+
+def redaction_parts(value: str) -> tuple[str, str, str]:
+    local, domain = value.split(chr(64), 1)
+    return value, local, domain
+
+
+class PrivacyMetadataTests(unittest.TestCase):
+    """Commit identity metadata: the second published surface."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.base = pathlib.Path(self._td.name)
+        empty = self.base / "empty-gitconfig"
+        empty.write_text("", encoding="utf-8")
+        # Isolate from the host's identity, hooks and defaults.
+        self.env = {
+            key: value for key, value in os.environ.items() if not key.startswith("GIT_")
+        }
+        self.env.update(
+            GIT_CONFIG_GLOBAL=str(empty), GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_SYSTEM=str(empty)
+        )
+        self.repo = self.base / "repo"
+        self.repo.mkdir()
+        self.git("init", "-q")
+        ids = identities()
+        (self.repo / ".privacy-allowlist.json").write_text(
+            json.dumps(config_document(allowed_exact=["Tim WU", ids["web_flow"]])),
+            encoding="utf-8",
+        )
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def scanner(self):
+        if SCANNER_MODULE is None:
+            self.fail(LOAD_ERROR)
+        return SCANNER_MODULE
+
+    def config(self):
+        return self.scanner().load_config(self.repo / ".privacy-allowlist.json")
+
+    def git(self, *args: str, input_text: Optional[str] = None, extra=None) -> str:
+        env = dict(self.env)
+        env.update(extra or {})
+        proc = subprocess.run(
+            ["git", *args], cwd=self.repo, text=True, capture_output=True, env=env,
+            input=input_text,
+        )
+        if proc.returncode:
+            self.fail(f"git {' '.join(args[:2])} failed: {proc.stderr}")
+        return proc.stdout.strip()
+
+    def commit(self, author_email: str, committer_email: Optional[str] = None,
+               author_name: str = "Tim WU", committer_name: str = "Tim WU") -> str:
+        self.git(
+            "commit", "-q", "--allow-empty", "-m", "synthetic",
+            extra={
+                "GIT_AUTHOR_NAME": author_name,
+                "GIT_AUTHOR_EMAIL": author_email,
+                "GIT_COMMITTER_NAME": committer_name,
+                "GIT_COMMITTER_EMAIL": committer_email or identities()["noreply"],
+            },
+        )
+        return self.git("rev-parse", "HEAD")
+
+    def keys(self, findings) -> set[tuple[str, str, str]]:
+        return {(f.commit, f.field, f.category) for f in findings}
+
+    def check(self, commits: list[str]):
+        return self.scanner().scan_commit_identities(self.repo, commits, self.config())
+
+    def run_cli(self, *args: str, stdin: str = "") -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(SCANNER), "--repo", str(self.repo), *args],
+            text=True, capture_output=True, env=self.env, input=stdin,
+        )
+
+    def assert_redacted(self, text: str, value: str) -> None:
+        for part in redaction_parts(value):
+            self.assertNotIn(part, text)
+
+    def test_untrusted_author_email_is_a_finding(self) -> None:
+        sha = self.commit(identities()["private"])
+        findings, checked = self.check([sha])
+        self.assertEqual(self.keys(findings), {(sha[:12], "author-email", "commit_email")})
+        self.assertEqual(checked, 1)
+
+    def test_untrusted_committer_email_is_a_finding(self) -> None:
+        ids = identities()
+        sha = self.commit(ids["noreply"], ids["private"])
+        findings, _ = self.check([sha])
+        self.assertEqual(self.keys(findings), {(sha[:12], "committer-email", "commit_email")})
+
+    def test_internal_host_shaped_email_is_a_finding(self) -> None:
+        sha = self.commit(identities()["internal_host"])
+        findings, _ = self.check([sha])
+        self.assertEqual(self.keys(findings), {(sha[:12], "author-email", "commit_email")})
+
+    def test_noreply_and_web_flow_identities_are_allowed(self) -> None:
+        ids = identities()
+        first = self.commit(ids["noreply"])
+        second = self.commit(ids["noreply"], ids["web_flow"])
+        findings, checked = self.check([first, second])
+        self.assertEqual(findings, ())
+        self.assertEqual(checked, 2)
+
+    def test_repository_allowlist_admits_web_flow_exactly(self) -> None:
+        ids = identities()
+        config = self.scanner().load_config(ROOT / ".privacy-allowlist.json")
+        sha = self.commit(ids["noreply"], ids["web_flow"])
+        findings, _ = self.scanner().scan_commit_identities(self.repo, [sha], config)
+        self.assertEqual(findings, ())
+        other = self.commit(ids["other_github"])
+        findings, _ = self.scanner().scan_commit_identities(self.repo, [other], config)
+        self.assertEqual(self.keys(findings), {(other[:12], "author-email", "commit_email")})
+
+    def test_developer_home_in_a_name_is_a_finding(self) -> None:
+        name = "Dev " + "/".join(("", "home", "pii-test-user", ""))
+        sha = self.commit(identities()["noreply"], author_name=name)
+        findings, _ = self.check([sha])
+        self.assertEqual(self.keys(findings), {(sha[:12], "author-name", "developer_home")})
+
+    def test_plain_names_are_not_findings(self) -> None:
+        sha = self.commit(identities()["noreply"], author_name="Ada Example")
+        findings, _ = self.check([sha])
+        self.assertEqual(findings, ())
+
+    def test_earlier_commit_is_reported_once_per_field(self) -> None:
+        ids = identities()
+        first = self.commit(ids["private"], ids["private"])
+        second = self.commit(ids["noreply"])
+        third = self.commit(ids["noreply"])
+        findings, checked = self.check([first, second, third, first])
+        self.assertEqual(
+            sorted(self.keys(findings)),
+            [(first[:12], "author-email", "commit_email"),
+             (first[:12], "committer-email", "commit_email")],
+        )
+        self.assertEqual(len(findings), 2)
+        self.assertEqual(checked, 3)
+
+    def test_pre_push_checks_every_outgoing_commit_identity(self) -> None:
+        ids = identities()
+        (self.repo / "safe.txt").write_text("safe\n", encoding="utf-8")
+        self.git("add", ".")
+        base = self.commit(ids["noreply"])
+        bad = self.commit(ids["private"])
+        self.commit(ids["noreply"])
+        tip = self.commit(ids["noreply"])
+        updates = f"refs/heads/main {tip} refs/heads/main {base}\n"
+        result = self.scanner().scan_pre_push(self.repo, "origin", updates, self.config())
+        self.assertEqual(
+            self.keys(result.metadata_findings), {(bad[:12], "author-email", "commit_email")}
+        )
+        self.assertEqual(result.identities_checked, 3)
+
+    def write_raw_commit(self, body: str) -> str:
+        tree = self.git("mktree", input_text="")
+        return self.git(
+            "hash-object", "-t", "commit", "-w", "--literally", "--stdin",
+            input_text=body.replace("TREE", tree),
+        )
+
+    def test_malformed_commit_objects_fail_closed(self) -> None:
+        noreply = identities()["noreply"]
+        person = f"Tim WU <{noreply}> 1700000000 +0000"
+        cases = {
+            "missing committer": f"tree TREE\nauthor {person}\n\nmsg\n",
+            "duplicate author": f"tree TREE\nauthor {person}\nauthor {person}\n"
+                                f"committer {person}\n\nmsg\n",
+            "unparseable author": f"tree TREE\nauthor Tim WU {noreply}\n"
+                                  f"committer {person}\n\nmsg\n",
+        }
+        for label, body in cases.items():
+            with self.subTest(case=label):
+                sha = self.write_raw_commit(body)
+                with self.assertRaises(self.scanner().ScanError) as caught:
+                    self.check([sha])
+                self.assert_redacted(str(caught.exception), noreply)
+
+    def test_unknown_commit_fails_closed(self) -> None:
+        with self.assertRaises(self.scanner().ScanError):
+            self.check(["1" * 40])
+
+    def test_commit_range_checks_only_the_range_and_redacts(self) -> None:
+        ids = identities()
+        value = ids["private"]
+        base = self.commit(value)
+        head = self.commit(ids["noreply"], value)
+        proc = self.run_cli("--commit-range", base, head)
+        combined = proc.stdout + proc.stderr
+        self.assertEqual(proc.returncode, 1, combined)
+        self.assertIn("category=commit_email", combined)
+        self.assertIn(f"commit={head[:12]}", combined)
+        self.assertIn("field=committer-email", combined)
+        self.assertNotIn("field=author-email", combined)
+        self.assertNotIn(base[:12], combined)
+        self.assertIn("1 commit identities checked", combined)
+        self.assert_redacted(combined, value)
+
+    def test_commit_range_rejects_bad_arguments(self) -> None:
+        sha = self.commit(identities()["noreply"])
+        for args in (
+            ("--commit-range", sha[:12], sha),
+            ("--commit-range", sha, "HEAD"),
+            ("--commit-range", sha, sha, "--pre-push", "--remote", "origin"),
+        ):
+            with self.subTest(args=args[1:3]):
+                self.assertEqual(self.run_cli(*args).returncode, 2)
+
+    def test_commit_range_with_no_new_commits_passes(self) -> None:
+        sha = self.commit(identities()["noreply"])
+        proc = self.run_cli("--commit-range", sha, sha)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("0 commit identities checked", proc.stdout)
+
+    def test_metadata_findings_never_carry_the_value(self) -> None:
+        value = identities()["private"]
+        sha = self.commit(value)
+        findings, _ = self.check([sha])
+        self.assertTrue(findings)
+        rendered = self.scanner().format_findings(findings)
+        self.assertIn(f"commit={sha[:12]} field=author-email", rendered)
+        self.assert_redacted(rendered + repr(findings), value)
 
 
 if __name__ == "__main__":

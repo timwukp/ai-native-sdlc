@@ -485,6 +485,28 @@ def privacy_checks() -> None:
         check(f"privacy workflow: {label}", bool(workflow) and command in workflow)
     check("privacy workflow: required steps fail closed",
           bool(workflow) and "continue-on-error" not in workflow)
+    check(
+        "privacy workflow: checks pull-request commit identities",
+        bool(workflow) and 'python3 scripts/privacy_scan.py --repo . --commit-range '
+        '"$BASE_SHA" "$HEAD_SHA"' in workflow,
+    )
+    check(
+        "privacy workflow: identity step runs on pull requests only",
+        bool(re.search(r"^\s*if:\s*github\.event_name\s*==\s*'pull_request'\s*$", workflow, re.M)),
+    )
+    for label, ref in (("base", "base.sha"), ("head", "head.sha")):
+        check(
+            f"privacy workflow: {label} SHA arrives through env",
+            bool(re.search(
+                rf"^\s*{label.upper()}_SHA:\s*\$\{{\{{\s*github\.event\.pull_request\."
+                rf"{re.escape(ref)}\s*\}}\}}\s*$", workflow, re.M,
+            )),
+        )
+    check(
+        "privacy workflow: no expression is interpolated into a run line",
+        bool(workflow) and not re.search(r"^\s*run:.*\$\{\{", workflow, re.M),
+        "pass event values through env: and reference them as shell variables",
+    )
 
     hook_json = texts["Kiro privacy hook config"]
     for label, needle in (
@@ -516,6 +538,12 @@ def privacy_checks() -> None:
         ("redacted findings", "never prints the matched value"),
         ("clean-scan limit", "does not prove the repository contains no PII"),
         ("specialist scanner limit", "not a replacement for a specialist secret scanner"),
+        ("tree content surface", "**tree content**"),
+        ("commit identity surface", "**commit identity metadata**"),
+        ("uncovered commit messages", "commit messages and their trailers"),
+        ("uncovered tag identity", "annotated-tag tagger identity"),
+        ("uncovered main merges", "merge commits GitHub creates on `main`"),
+        ("web-flow allowlist reason", "web-flow committer address"),
     ):
         check(f"README privacy: {label}", needle in readme)
 

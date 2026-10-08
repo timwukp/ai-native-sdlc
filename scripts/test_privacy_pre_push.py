@@ -180,6 +180,43 @@ class PrivacyPrePushTests(unittest.TestCase):
                 1,
             )
 
+    def test_real_hook_blocks_untrusted_committer_identity(self) -> None:
+        at = chr(64)
+        bad = "".join(("builder", at, "ip-192-0-2-1.compute.internal"))
+        good = "".join(("8848995+timwukp", at, "users.noreply.github.com"))
+        with tempfile.TemporaryDirectory() as td:
+            repo, remote = self.prepare(pathlib.Path(td))
+            self.git(repo, "config", "--local", "core.hooksPath", ".githooks")
+            empty = pathlib.Path(td) / "empty-gitconfig"
+            empty.write_text("", encoding="utf-8")
+            env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+            env.update(GIT_CONFIG_GLOBAL=str(empty), GIT_CONFIG_NOSYSTEM="1",
+                       GIT_AUTHOR_NAME="Tim WU", GIT_AUTHOR_EMAIL=good,
+                       GIT_COMMITTER_NAME="Tim WU")
+
+            def git_env(committer: str, *args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["git", *args], cwd=repo, text=True, capture_output=True,
+                    env={**env, "GIT_COMMITTER_EMAIL": committer},
+                )
+
+            git_env(bad, "switch", "-qc", "bad")
+            self.assertEqual(git_env(bad, "commit", "-q", "--allow-empty", "-m", "x").returncode, 0)
+            pushed = git_env(bad, "push", "-q", "origin", "bad")
+            combined = pushed.stdout + pushed.stderr
+            self.assertNotEqual(pushed.returncode, 0, combined)
+            self.assertIn("committer-email", combined)
+            for part in (bad, bad.split(at)[0], bad.split(at)[1]):
+                self.assertNotIn(part, combined)
+            self.assertEqual(self.git(remote, "for-each-ref", "refs/heads/bad"), "")
+
+            git_env(good, "switch", "-q", "main")
+            git_env(good, "switch", "-qc", "good")
+            self.assertEqual(git_env(good, "commit", "-q", "--allow-empty", "-m", "y").returncode, 0)
+            pushed = git_env(good, "push", "-q", "origin", "good")
+            self.assertEqual(pushed.returncode, 0, pushed.stderr)
+            self.assertNotEqual(self.git(remote, "for-each-ref", "refs/heads/good"), "")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
