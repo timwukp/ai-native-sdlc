@@ -36,6 +36,9 @@ from html.parser import HTMLParser
 
 HERE = pathlib.Path(__file__).resolve().parent
 PAGE = HERE / "index.html"
+# Top-level tracked entries the README Layout block must list.
+LAYOUT_ENTRIES = ("index.html", "plays.html", "verify.py", "intent/", ".sdlc/", "evals/",
+                  "scripts/", ".githooks/", ".privacy-allowlist.json", ".github/", ".kiro/")
 
 FAILURES: list[str] = []
 CHECKS = 0
@@ -546,6 +549,15 @@ def privacy_checks() -> None:
         ("web-flow allowlist reason", "web-flow committer address"),
     ):
         check(f"README privacy: {label}", needle in readme)
+
+    layout = re.search(r"^## Layout\s*\n+```[^\n]*\n(.*?)^```", readme, re.S | re.M)
+    block = layout.group(1) if layout else ""
+    missing = [e for e in LAYOUT_ENTRIES
+               if not re.search(rf"^{re.escape(e)}(\s|$)", block, re.M)]
+    check("README layout: lists the published tree",
+          bool(layout) and not missing and "entire site" not in block,
+          "no fenced block under '## Layout'" if not layout
+          else f"missing={missing} entire-site={'entire site' in block}")
 
     # Build the old machine identity at runtime so this verifier does not become a fresh leak of
     # the literal it is removing. Only the two measured baseline artifacts should need remediation.
@@ -1335,13 +1347,24 @@ def index_play_link_checks(index_html: str, plays_html: str) -> None:
     check("index plays: one header-nav link to plays.html", len(nav_links) == 1,
           f"found {len(nav_links)}")
     unlinked = []
+    names: dict[str, str] = {}
     for i in (i for i, n in enumerate(t.nodes) if n["attrs"].get("role") == "tabpanel"):
         stage = t.attrs(i).get("data-stage", "")
-        n_links = sum(1 for j in t.within(i) if t.attrs(j).get("href") == f"plays.html#{stage}")
-        if n_links != 1:
+        links = [j for j in t.within(i) if t.attrs(j).get("href") == f"plays.html#{stage}"]
+        if len(links) != 1:
             unlinked.append(stage)
+        if links:
+            names[stage] = t.text(links[0])
     check("index plays: each stage panel links its plays.html section once",
           not unlinked, f"unlinked={unlinked}")
+    folded = [n.casefold() for n in names.values()]
+    dupes = sorted({s for s, n in names.items() if folded.count(n.casefold()) > 1})
+    unnamed = sorted(s for s, n in names.items()
+                     if not re.search(rf"\b{re.escape(s)}\b", n, re.I))
+    check("index plays: stage links have distinct names that name their stage",
+          len(names) == 6 and not dupes and not unnamed,
+          f"duplicate={[(s, names[s]) for s in dupes]} "
+          f"missing-stage={[(s, names[s]) for s in unnamed]} found={len(names)}")
     check("index plays: the 'does not cover' heading is kept",
           "what this deliberately does not cover" in visible_text(index_html).casefold())
     oos = [j for j, n in enumerate(t.nodes) if "data-oos" in n["attrs"]]
@@ -1548,6 +1571,9 @@ MUTATIONS = (
          r'<h3>Invented play</h3></article>')),
     ("implemented evidence path points at a missing file", "plays: every evidence path exists",
      _on("plays", r'data-evidence="verify\.py', 'data-evidence="verify-missing.py')),
+    ("rename the build stage link to \"Stage plays\"",
+     "index plays: stage links have distinct names that name their stage",
+     _on("index", r'(<a\b[^>]*\bhref="plays\.html#build"[^>]*>)[^<]*(</a>)', r"\1Stage plays\2")),
     ("drop one data-oos link", "index plays: data-oos set equals plays.html out-of-scope set",
      _on("index", r'<a\b[^>]*\bdata-oos="claude-tag"[^>]*>(.*?)</a>', r"\1")),
     ("add one edge to the figure only", "plays: figure edge set equals the dependency list",
