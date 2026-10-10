@@ -3,7 +3,8 @@
 
 Findings deliberately carry no matched source value. A content diagnostic contains only category,
 repository-relative path, line number, and remediation. A commit-identity diagnostic contains only
-category, the first 12 hex digits of the commit id, the field name, and remediation.
+category, the first 12 hex digits of the commit id, the field name, and remediation. A
+commit-message diagnostic adds the 1-based line within the message, never the line's text.
 """
 
 from __future__ import annotations
@@ -48,6 +49,7 @@ class MetadataFinding:
     field: str
     category: str
     remediation: str
+    line: Optional[int] = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -273,7 +275,8 @@ def format_findings(findings: Iterable[Finding | MetadataFinding]) -> str:
     ]
     lines.extend(
         "PRIVACY FINDING: "
-        f"category={finding.category} commit={finding.commit} field={finding.field}; "
+        f"category={finding.category} commit={finding.commit} field={finding.field}"
+        f"{'' if finding.line is None else f' line={finding.line}'}; "
         f"{finding.remediation}; matched value redacted"
         for finding in metadata
     )
@@ -361,10 +364,13 @@ def _scan_treeish(repo: pathlib.Path, treeish: str, config: Config) -> ScanResul
     return ScanResult(tuple(sorted(findings)), scanned, skipped)
 
 
-def _commit_identity(repo: pathlib.Path, commit: str) -> dict[str, tuple[str, str]]:
+def _commit_object(repo: pathlib.Path, commit: str) -> bytes:
+    """Return the raw commit object, the bytes that are published."""
+    return _git(repo, ("cat-file", "commit", commit))
+
+
+def _commit_identity(raw: bytes, short: str) -> dict[str, tuple[str, str]]:
     """Return {role: (name, email)} parsed from the raw commit object header."""
-    short = commit[:12]
-    raw = _git(repo, ("cat-file", "commit", commit))
     header = raw.split(b"\n\n", 1)[0]
     try:
         text = header.decode("utf-8")
@@ -404,21 +410,46 @@ def _identity_findings(
     return findings
 
 
-def scan_commit_identities(
+def _commit_message(raw: bytes, short: str) -> str:
+    """Return the message (subject, body and trailers) after the header's first blank line."""
+    header, _, body = raw.partition(b"\n\n")
+    for line in header.split(b"\n"):
+        if line.startswith(b"encoding "):
+            declared = line[len(b"encoding "):].strip().lower()
+            if declared not in (b"utf-8", b"utf8"):
+                raise ScanError(f"commit message declares a non-UTF-8 encoding: {short}")
+    try:
+        return body.decode("utf-8")
+    except UnicodeError as exc:
+        raise ScanError(f"commit message is not valid UTF-8: {short}") from exc
+
+
+def _message_findings(short: str, message: str, config: Config) -> list[MetadataFinding]:
+    # The content rules apply unchanged; trailers are part of the message, not a separate field.
+    return [
+        MetadataFinding(short, "message", finding.category, finding.remediation, finding.line)
+        for finding in scan_text(message, "message", config)
+    ]
+
+
+def scan_commits(
     repo: pathlib.Path, commits: Sequence[str], config: Config
 ) -> tuple[tuple[MetadataFinding, ...], int]:
-    """Check author and committer identity of each commit; return findings and commits checked."""
+    """Check identity and message of each commit; return findings and commits checked."""
     findings: set[MetadataFinding] = set()
     unique = list(dict.fromkeys(commits))
     for commit in unique:
-        identity = _commit_identity(repo, commit)
         short = commit[:12]
+        raw = _commit_object(repo, commit)
+        identity = _commit_identity(raw, short)
         findings.update(_identity_findings(short, identity, config))
+        message = _commit_message(raw, short)
+        findings.update(_message_findings(short, message, config))
     return tuple(sorted(findings)), len(unique)
 
 
 def scan_commit_range(repo: pathlib.Path, base: str, head: str, config: Config) -> ScanResult:
-    """Check identities of the commits in merge-base(base, head)..head."""
+    """Check identity and message of the commits in merge-base(base, head)..head."""
     if not FULL_SHA_RE.fullmatch(base) or not FULL_SHA_RE.fullmatch(head):
         raise ScanError("--commit-range needs two full 40-hex commit ids")
     root = _repo_root(repo)
@@ -428,7 +459,7 @@ def scan_commit_range(repo: pathlib.Path, base: str, head: str, config: Config) 
         commits = [line for line in raw.decode("ascii").splitlines() if line]
     except UnicodeError as exc:
         raise ScanError("Git returned a non-ASCII commit id") from exc
-    metadata, checked = scan_commit_identities(root, commits, config)
+    metadata, checked = scan_commits(root, commits, config)
     return ScanResult((), 0, 0, metadata, checked)
 
 
@@ -470,7 +501,7 @@ def scan_pre_push(repo: pathlib.Path, remote: str, updates: str, config: Config)
         findings.update(result.findings)
         scanned += result.scanned_files
         skipped += result.skipped_binary
-    metadata, checked = scan_commit_identities(root, unique, config)
+    metadata, checked = scan_commits(root, unique, config)
     return ScanResult(tuple(sorted(findings)), scanned, skipped, metadata, checked)
 
 
@@ -483,7 +514,7 @@ def _render_result(result: ScanResult) -> int:
         f"{result.skipped_binary} binary files skipped, {len(every)} findings"
     )
     if result.identities_checked is not None:
-        print(f"privacy scan: {result.identities_checked} commit identities checked")
+        print(f"privacy scan: {result.identities_checked} commits checked (identity and message)")
     return 1 if every else 0
 
 
@@ -494,7 +525,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     mode.add_argument("--pre-push", action="store_true", help="read Git pre-push updates")
     mode.add_argument(
         "--commit-range", nargs=2, metavar=("BASE", "HEAD"),
-        help="check commit identities in merge-base(BASE, HEAD)..HEAD (full ids)",
+        help="check commit identity and message in merge-base(BASE, HEAD)..HEAD (full ids)",
     )
     parser.add_argument("--remote", default="", help="remote name for --pre-push")
     args = parser.parse_args(argv)
