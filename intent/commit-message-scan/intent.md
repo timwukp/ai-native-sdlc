@@ -2,9 +2,9 @@
 
 - **Slug:** commit-message-scan
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Date:** 2026-10-10
-- **Status:** draft
+- **Status:** accepted
 - **Issue:** https://github.com/timwukp/ai-native-sdlc/issues/20 (first of three surfaces)
 
 ## Problem
@@ -76,7 +76,9 @@ not by a looser rule.
    merge commits as not covered.
 9. The chain closes as `shipped` through an artifact-only pull request.
 
-## Decisions to confirm
+## Decisions accepted
+
+All four decisions below were accepted as proposed.
 
 1. **Allow the vendor bot address as one exact value (recommended).** It goes into `allowed_exact`,
    the same way the GitHub web-flow address did. Rejected alternatives: allowing every `noreply@`
