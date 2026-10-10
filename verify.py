@@ -543,12 +543,18 @@ def privacy_checks() -> None:
         ("specialist scanner limit", "not a replacement for a specialist secret scanner"),
         ("tree content surface", "**tree content**"),
         ("commit identity surface", "**commit identity metadata**"),
-        ("uncovered commit messages", "commit messages and their trailers"),
+        ("commit message surface", "**commit messages**"),
+        ("trailers covered", "trailers such as `Co-authored-by:` and `Signed-off-by:`"),
         ("uncovered tag identity", "annotated-tag tagger identity"),
         ("uncovered main merges", "merge commits GitHub creates on `main`"),
         ("web-flow allowlist reason", "web-flow committer address"),
+        ("bot trailer allowlist reason", "public bot address that a coding agent"),
     ):
         check(f"README privacy: {label}", needle in readme)
+    uncovered = re.search(r"^Not covered:(.*?)(?:\n\n|\Z)", readme, re.S | re.M)
+    check("README privacy: commit messages are not listed as uncovered",
+          bool(uncovered) and "commit messages" not in uncovered.group(1),
+          "no 'Not covered:' paragraph" if not uncovered else "")
 
     layout = re.search(r"^## Layout\s*\n+```[^\n]*\n(.*?)^```", readme, re.S | re.M)
     block = layout.group(1) if layout else ""

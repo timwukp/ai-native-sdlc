@@ -44,6 +44,21 @@ METADATA_MUTATIONS = (
         "MetadataFinding(short, field, category,",
         "MetadataFinding(short, field + value, category,",
     ),
+    (
+        "message_check_disabled",
+        "        findings.update(_message_findings(short, message, config))",
+        "        pass",
+    ),
+    (
+        "message_trailers_dropped",
+        'scan_text(message, "message", config)',
+        'scan_text(message.rsplit("\\n\\n", 1)[0], "message", config)',
+    ),
+    (
+        "message_line_leaked",
+        'MetadataFinding(short, "message",',
+        'MetadataFinding(short, "message" + message.splitlines()[finding.line - 1],',
+    ),
 )
 
 

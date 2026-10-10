@@ -259,8 +259,8 @@ def redaction_parts(value: str) -> tuple[str, str, str]:
     return value, local, domain
 
 
-class PrivacyMetadataTests(unittest.TestCase):
-    """Commit identity metadata: the second published surface."""
+class CommitRepoCase(unittest.TestCase):
+    """A throwaway repository isolated from the host's Git configuration."""
 
     def setUp(self) -> None:
         self._td = tempfile.TemporaryDirectory()
@@ -333,6 +333,10 @@ class PrivacyMetadataTests(unittest.TestCase):
     def assert_redacted(self, text: str, value: str) -> None:
         for part in redaction_parts(value):
             self.assertNotIn(part, text)
+
+
+class PrivacyMetadataTests(CommitRepoCase):
+    """Commit identity metadata: the second published surface."""
 
     def test_untrusted_author_email_is_a_finding(self) -> None:
         sha = self.commit(identities()["private"])
@@ -450,7 +454,7 @@ class PrivacyMetadataTests(unittest.TestCase):
         self.assertIn("field=committer-email", combined)
         self.assertNotIn("field=author-email", combined)
         self.assertNotIn(base[:12], combined)
-        self.assertIn("1 commit identities checked", combined)
+        self.assertIn("1 commits checked (identity and message)", combined)
         self.assert_redacted(combined, value)
 
     def test_commit_range_rejects_bad_arguments(self) -> None:
@@ -467,7 +471,7 @@ class PrivacyMetadataTests(unittest.TestCase):
         sha = self.commit(identities()["noreply"])
         proc = self.run_cli("--commit-range", sha, sha)
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn("0 commit identities checked", proc.stdout)
+        self.assertIn("0 commits checked (identity and message)", proc.stdout)
 
     def test_metadata_findings_never_carry_the_value(self) -> None:
         value = identities()["private"]
@@ -477,6 +481,168 @@ class PrivacyMetadataTests(unittest.TestCase):
         rendered = self.scanner().format_findings(findings)
         self.assertIn(f"commit={sha[:12]} field=author-email", rendered)
         self.assert_redacted(rendered + repr(findings), value)
+
+
+def vendor_bot_address() -> str:
+    """The reviewed bot address, read from the repository allowlist rather than written here."""
+    data = json.loads((ROOT / ".privacy-allowlist.json").read_text(encoding="utf-8"))
+    web_flow = identities()["web_flow"]
+    rest = [v for v in data.get("allowed_exact", []) if v not in ("Tim WU", web_flow)]
+    return rest[0] if len(rest) == 1 else ""
+
+
+class PrivacyMessageTests(CommitRepoCase):
+    """Commit messages and trailers: the third published surface."""
+
+    def commit_message(self, message: str, author_email: Optional[str] = None) -> str:
+        path = self.base / "message.txt"
+        path.write_text(message, encoding="utf-8")
+        noreply = identities()["noreply"]
+        self.git(
+            "commit", "-q", "--allow-empty", "--cleanup=verbatim", "-F", str(path),
+            extra={
+                "GIT_AUTHOR_NAME": "Tim WU",
+                "GIT_AUTHOR_EMAIL": author_email or noreply,
+                "GIT_COMMITTER_NAME": "Tim WU",
+                "GIT_COMMITTER_EMAIL": noreply,
+            },
+        )
+        return self.git("rev-parse", "HEAD")
+
+    def scan(self, commits: list[str], config=None):
+        return self.scanner().scan_commits(self.repo, commits, config or self.config())
+
+    def line_keys(self, findings) -> set[tuple[str, str, str, Optional[int]]]:
+        return {(f.commit, f.field, f.category, getattr(f, "line", None)) for f in findings}
+
+    def write_raw_bytes(self, body: bytes) -> str:
+        tree = self.git("mktree", input_text="")
+        proc = subprocess.run(
+            ["git", "hash-object", "-t", "commit", "-w", "--literally", "--stdin"],
+            cwd=self.repo, input=body.replace(b"TREE", tree.encode("ascii")),
+            capture_output=True, env=self.env,
+        )
+        if proc.returncode:
+            self.fail(f"git hash-object failed: {proc.stderr!r}")
+        return proc.stdout.decode("ascii").strip()
+
+    def test_email_in_message_body_is_a_finding_at_its_line(self) -> None:
+        value = identities()["private"]
+        sha = self.commit_message(f"Subject\n\nBody line one.\nContact {value} for access.\n")
+        findings, checked = self.scan([sha])
+        self.assertEqual(self.line_keys(findings), {(sha[:12], "message", "email", 4)})
+        self.assertEqual(checked, 1)
+
+    def test_email_in_co_authored_by_trailer_is_a_finding(self) -> None:
+        value = identities()["private"]
+        sha = self.commit_message(f"Subject\n\nBody.\n\nCo-authored-by: Learner <{value}>\n")
+        findings, _ = self.scan([sha])
+        self.assertEqual(self.line_keys(findings), {(sha[:12], "message", "email", 5)})
+
+    def test_email_in_signed_off_by_trailer_is_a_finding(self) -> None:
+        value = identities()["private"]
+        sha = self.commit_message(f"Subject\n\nBody.\n\nSigned-off-by: Learner <{value}>\n")
+        findings, _ = self.scan([sha])
+        self.assertEqual(self.line_keys(findings), {(sha[:12], "message", "email", 5)})
+
+    def test_developer_home_in_subject_is_a_finding(self) -> None:
+        path = "/".join(("", "home", "pii-test-user", "repo", "notes.txt"))
+        sha = self.commit_message(f"Fix {path}\n")
+        findings, _ = self.scan([sha])
+        self.assertEqual(self.line_keys(findings), {(sha[:12], "message", "developer_home", 1)})
+
+    def test_noreply_and_reviewed_bot_trailers_are_allowed(self) -> None:
+        vendor = vendor_bot_address()
+        self.assertTrue(vendor, "the allowlist holds no single reviewed bot address")
+        config = self.scanner().load_config(ROOT / ".privacy-allowlist.json")
+        noreply = identities()["noreply"]
+        sha = self.commit_message(
+            f"Subject\n\nBody.\n\nCo-authored-by: Tim WU <{noreply}>\n"
+            f"Co-Authored-By: Agent <{vendor}>\n"
+        )
+        findings, _ = self.scan([sha], config)
+        self.assertEqual(findings, ())
+
+    def test_plain_message_and_empty_message_are_allowed(self) -> None:
+        plain = self.commit_message("Subject\n\nA plain body with no personal data.\n")
+        noreply = identities()["noreply"]
+        person = f"Tim WU <{noreply}> 1700000000 +0000"
+        empty = self.write_raw_bytes(
+            f"tree TREE\nauthor {person}\ncommitter {person}\n\n".encode("utf-8")
+        )
+        findings, checked = self.scan([plain, empty])
+        self.assertEqual(findings, ())
+        self.assertEqual(checked, 2)
+
+    def test_earlier_bad_message_is_found_by_pre_push_and_commit_range(self) -> None:
+        value = identities()["private"]
+        (self.repo / "safe.txt").write_text("safe\n", encoding="utf-8")
+        self.git("add", ".")
+        base = self.commit_message("Base\n")
+        bad = self.commit_message(f"Bad\n\nCo-authored-by: Learner <{value}>\n")
+        self.commit_message("Middle\n")
+        tip = self.commit_message("Tip\n")
+        updates = f"refs/heads/main {tip} refs/heads/main {base}\n"
+        result = self.scanner().scan_pre_push(self.repo, "origin", updates, self.config())
+        self.assertEqual(
+            self.line_keys(result.metadata_findings), {(bad[:12], "message", "email", 3)}
+        )
+        proc = self.run_cli("--commit-range", base, tip)
+        combined = proc.stdout + proc.stderr
+        self.assertEqual(proc.returncode, 1, combined)
+        self.assertIn(f"commit={bad[:12]} field=message line=3;", combined)
+        self.assertIn("3 commits checked (identity and message)", combined)
+        self.assert_redacted(combined, value)
+
+    def test_undecodable_messages_fail_closed(self) -> None:
+        noreply = identities()["noreply"]
+        base = self.commit_message("Base\n")
+        head = b"tree TREE\nparent " + base.encode("ascii")
+        person = f"Tim WU <{noreply}> 1700000000 +0000".encode("utf-8")
+        cases = {
+            "legacy encoding header": head + b"\nauthor " + person + b"\ncommitter " + person
+            + b"\nencoding ISO-8859-1\n\nCaf\xe9\n",
+            "invalid UTF-8 bytes": head + b"\nauthor " + person + b"\ncommitter " + person
+            + b"\n\nBroken \xff\xfe bytes\n",
+        }
+        for label, body in cases.items():
+            with self.subTest(case=label):
+                sha = self.write_raw_bytes(body)
+                with self.assertRaises(self.scanner().ScanError) as caught:
+                    self.scan([sha])
+                self.assertIn(sha[:12], str(caught.exception))
+                self.assert_redacted(str(caught.exception), noreply)
+                proc = self.run_cli("--commit-range", base, sha)
+                self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+                self.assertIn(sha[:12], proc.stderr)
+
+    def test_utf8_encoding_header_is_accepted(self) -> None:
+        noreply = identities()["noreply"]
+        person = f"Tim WU <{noreply}> 1700000000 +0000"
+        sha = self.write_raw_bytes(
+            f"tree TREE\nauthor {person}\ncommitter {person}\nencoding utf8\n\nCafé\n"
+            .encode("utf-8")
+        )
+        findings, _ = self.scan([sha])
+        self.assertEqual(findings, ())
+
+    def test_message_findings_never_carry_the_value_or_line(self) -> None:
+        value = identities()["private"]
+        line_text = f"Ping {value} about the rollout"
+        sha = self.commit_message(f"Subject\n\n{line_text}\n")
+        findings, _ = self.scan([sha])
+        self.assertTrue(findings)
+        rendered = self.scanner().format_findings(findings)
+        self.assertIn(f"commit={sha[:12]} field=message line=3;", rendered)
+        self.assert_redacted(rendered + repr(findings), value)
+        self.assertNotIn("about the rollout", rendered + repr(findings))
+
+    def test_identity_findings_render_without_a_line(self) -> None:
+        sha = self.commit(identities()["private"])
+        findings, _ = self.scan([sha])
+        rendered = self.scanner().format_findings(findings)
+        self.assertIn(f"commit={sha[:12]} field=author-email;", rendered)
+        self.assertNotIn("line=", rendered)
 
 
 if __name__ == "__main__":
