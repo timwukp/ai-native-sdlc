@@ -65,10 +65,17 @@ draft rather than committed on the strength of already existing.
 ## Layout
 
 ```
-index.html   the entire site: markup, CSS and JS inline, no dependencies
-verify.py    the verification target — run it before committing a change
-intent/      the artifact chain this site was built through
-.sdlc/       which intent is active, and the artifact schema version
+index.html               the home page and course: markup, CSS and JS inline, no dependencies
+plays.html               the Playbook play catalogue: no JavaScript, no dependencies
+verify.py                the verification target — run it before committing a change
+intent/                  the artifact chain this site was built through
+.sdlc/                   which intent is active, and the artifact schema version
+evals/                   hashed source fixtures for the copied-text check
+scripts/                 the privacy scanner, its hooks, installer, tests and mutation proof
+.githooks/               the opt-in pre-push privacy hook
+.privacy-allowlist.json  the privacy scanner's allowlist
+.github/                 CI workflows and the pull request template
+.kiro/                   the write-time agent privacy hook configuration
 ```
 
 ## Verify it locally
