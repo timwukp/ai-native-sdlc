@@ -2,9 +2,9 @@
 
 - **Spec:** ./spec.md
 - **Author:** Kiro (AI agent)
-- **Accepted-by:** pending
+- **Accepted-by:** Tim WU
 - **Accepted-for:** 2e22706b2fb6cdfeb098f9e3f6ac1132d0e920a3
-- **Status:** draft
+- **Status:** accepted
 
 `Accepted-for` is `git merge-base origin/main HEAD` at plan draft time, the value the CI gate
 compares. It is also the current `origin/main`, after the stage-plays-link-names closeout.
