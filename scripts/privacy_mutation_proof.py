@@ -36,8 +36,8 @@ METADATA_MUTATIONS = (
     ),
     (
         "identity_last_commit_only",
-        "scan_commit_identities(root, unique, config)",
-        "scan_commit_identities(root, unique[-1:], config)",
+        "scan_commits(root, unique, config)",
+        "scan_commits(root, unique[-1:], config)",
     ),
     (
         "identity_value_leaked",

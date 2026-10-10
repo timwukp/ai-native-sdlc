@@ -322,7 +322,7 @@ class CommitRepoCase(unittest.TestCase):
         return {(f.commit, f.field, f.category) for f in findings}
 
     def check(self, commits: list[str]):
-        return self.scanner().scan_commit_identities(self.repo, commits, self.config())
+        return self.scanner().scan_commits(self.repo, commits, self.config())
 
     def run_cli(self, *args: str, stdin: str = "") -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -367,10 +367,10 @@ class PrivacyMetadataTests(CommitRepoCase):
         ids = identities()
         config = self.scanner().load_config(ROOT / ".privacy-allowlist.json")
         sha = self.commit(ids["noreply"], ids["web_flow"])
-        findings, _ = self.scanner().scan_commit_identities(self.repo, [sha], config)
+        findings, _ = self.scanner().scan_commits(self.repo, [sha], config)
         self.assertEqual(findings, ())
         other = self.commit(ids["other_github"])
-        findings, _ = self.scanner().scan_commit_identities(self.repo, [other], config)
+        findings, _ = self.scanner().scan_commits(self.repo, [other], config)
         self.assertEqual(self.keys(findings), {(other[:12], "author-email", "commit_email")})
 
     def test_developer_home_in_a_name_is_a_finding(self) -> None:

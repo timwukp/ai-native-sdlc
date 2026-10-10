@@ -2,7 +2,8 @@
   "schema_version": 1,
   "allowed_exact": [
     "Tim WU",
-    "noreply@github.com"
+    "noreply@github.com",
+    "noreply@anthropic.com"
   ],
   "allowed_patterns": [
     "^[^@\\s]+@users\\.noreply\\.github\\.com$",
